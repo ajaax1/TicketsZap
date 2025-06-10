@@ -1,4 +1,3 @@
-// app/(auth)/login/page.tsx
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -17,7 +16,6 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
 
-// Schema de validação
 const formSchema = z.object({
   email: z.string().email("E-mail inválido"),
   password: z.string().min(6, "Senha deve ter no mínimo 6 caracteres"),
@@ -37,7 +35,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-gray-100 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-neutral-100 p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle className="text-2xl font-bold text-center">
@@ -88,9 +86,8 @@ export default function LoginPage() {
           </Form>
 
           <div className="mt-4 text-center text-sm">
-            Não tem uma conta?{" "}
-            <Link href="/register" className="text-blue-600 hover:underline">
-              Cadastre-se
+            <Link href="/forgot-password" className="text-blue-600 hover:underline">
+              Esqueceu a senha?
             </Link>
           </div>
         </CardContent>
