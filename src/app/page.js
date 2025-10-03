@@ -24,9 +24,7 @@ export default function CustomDivTest() {
           </ul>
         </div>
 
-        <Button >
-  Botão Customizado
-</Button>
+        
         
       </div>
     </div>

@@ -1,9 +1,11 @@
 "use client";
-
-import { zodResolver } from "@hookform/resolvers/zod";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { login } from "@/services/auth"; 
 import { Button } from "@/components/ui/button";
+import toast, { Toaster } from "react-hot-toast";
 import {
   Form,
   FormControl,
@@ -22,7 +24,9 @@ const formSchema = z.object({
 });
 
 export default function LoginPage() {
-  const form = useForm<z.infer<typeof formSchema>>({
+  const router = useRouter(); // ✅ agora está dentro do componente
+
+  const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
       email: "",
@@ -30,12 +34,23 @@ export default function LoginPage() {
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
-    console.log(values); // Substituir por sua lógica de autenticação
+  async function onSubmit(values: any) {
+    try {
+      const data = await login(values);
+      toast.success("Login realizado com sucesso!");
+      setTimeout(() => {
+        router.push("/");
+      }, 1000);
+      console.log("Usuário logado:", data);
+    } catch (err: any) {
+      toast.error(err.message || "Erro ao logar");
+      console.error("Erro ao logar:", err.message);
+    }
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-neutral-100 p-4">
+      <Toaster position="top-right" /> 
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle className="text-2xl font-bold text-center">
@@ -52,11 +67,7 @@ export default function LoginPage() {
                   <FormItem>
                     <FormLabel>E-mail</FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder="seu@email.com"
-                        {...field}
-                        type="email"
-                      />
+                      <Input placeholder="seu@email.com" {...field} type="email" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -69,11 +80,7 @@ export default function LoginPage() {
                   <FormItem>
                     <FormLabel>Senha</FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder="••••••"
-                        {...field}
-                        type="password"
-                      />
+                      <Input placeholder="••••••" {...field} type="password" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
