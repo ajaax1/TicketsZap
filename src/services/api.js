@@ -1,30 +1,21 @@
-// src/services/api.js
 import axios from "axios";
 
+function getTokenFromCookie() {
+  if (typeof document === "undefined") return null;
+  const match = document.cookie.match(/(^| )token=([^;]+)/);
+  return match ? match[2] : null;
+}
+
 const api = axios.create({
-  baseURL: "http://localhost:8000/api",
+  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api",
 });
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("token");
+  const token = getTokenFromCookie();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
-
-// Intercepta erros de autenticação
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem("token");
-      if (typeof window !== "undefined") {
-        window.location.href = "/login"; // força logout
-      }
-    }
-    return Promise.reject(error);
-  }
-);
 
 export default api;

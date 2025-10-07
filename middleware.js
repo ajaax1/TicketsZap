@@ -1,12 +1,10 @@
 import { NextResponse } from "next/server";
 
 export function middleware(req) {
-  const token = req.cookies.get("token")?.value || req.headers.get("authorization");
+  const token = req.cookies.get("token")?.value || null;
 
-  // rotas que não precisam de login
-  const publicRoutes = ["/login"];
-
-  if (!token && !publicRoutes.includes(req.nextUrl.pathname)) {
+  // protege rotas que começam com /dashboard ou outras privadas
+  if (!token && req.nextUrl.pathname.startsWith("/dashboard")) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
@@ -14,5 +12,5 @@ export function middleware(req) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/dashboard/:path*"], // rotas protegidas
 };

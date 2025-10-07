@@ -1,28 +1,26 @@
-// src/hooks/useAuth.js
-import { useEffect, useState } from "react";
+"use client";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import api from "@/services/api";
 
 export default function useAuth() {
-  const [user, setUser] = useState(null);
   const router = useRouter();
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-      router.push("/login");
-      return;
-    }
-
-    // tenta buscar dados do usuário
-    api.get("/user")
-      .then(res => setUser(res.data))
-      .catch(() => {
-        localStorage.removeItem("token");
-        router.push("/login");
-      });
+    const token = document.cookie.includes("token=");
+    if (!token) router.push("/login");
   }, [router]);
+}
 
-  return { user };
+export async function logout() {
+  try {
+    await api.post("/logout"); // invalida o token no backend
+  } catch (error) {
+    console.warn("Erro ao deslogar do backend:", error);
+  } finally {
+    // sempre limpa o token local
+    if (typeof window !== "undefined") {
+      document.cookie = "token=; Max-Age=0; path=/;";
+      window.location.href = "/login";
+    }
+  }
 }

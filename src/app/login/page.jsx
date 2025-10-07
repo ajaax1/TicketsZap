@@ -17,6 +17,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
+import { useState } from "react";
+import { Loader2 } from "lucide-react";
 
 const formSchema = z.object({
   email: z.string().email("E-mail inválido"),
@@ -25,6 +27,7 @@ const formSchema = z.object({
 
 export default function LoginPage() {
   const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm({
     resolver: zodResolver(formSchema),
@@ -36,15 +39,17 @@ export default function LoginPage() {
 
   async function onSubmit(values) {
     try {
+      setIsLoading(true);
       const data = await login(values);
       toast.success("Login realizado com sucesso!");
       setTimeout(() => {
         router.push("/");
       }, 1000);
-      console.log("Usuário logado:", data);
     } catch (err) {
       toast.error(err.message || "Erro ao logar");
       console.error("Erro ao logar:", err.message);
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -67,7 +72,7 @@ export default function LoginPage() {
                   <FormItem>
                     <FormLabel>E-mail</FormLabel>
                     <FormControl>
-                      <Input placeholder="seu@email.com" {...field} type="email" />
+                      <Input placeholder="seu@email.com" {...field} type="email" disabled={isLoading} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -80,14 +85,21 @@ export default function LoginPage() {
                   <FormItem>
                     <FormLabel>Senha</FormLabel>
                     <FormControl>
-                      <Input placeholder="••••••" {...field} type="password" />
+                      <Input placeholder="••••••" {...field} type="password" disabled={isLoading} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full">
-                Entrar
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Entrando...
+                  </>
+                ) : (
+                  "Entrar"
+                )}
               </Button>
             </form>
           </Form>

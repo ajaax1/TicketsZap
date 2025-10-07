@@ -7,14 +7,40 @@ export async function login(values) {
       password: values.password,
     });
 
-    localStorage.setItem("token", response.data.token);
+    const token = response.data.token;
+    if (typeof window !== "undefined") {
+      document.cookie = `token=${token}; path=/; secure; samesite=strict`;
+    }
+
     return response.data;
   } catch (error) {
     throw new Error(error.response?.data?.message || "Erro ao logar");
   }
 }
 
-export function logout() {
-  localStorage.removeItem("token");
-  window.location.href = "/login"; 
+
+function getToken() {
+  const match = document.cookie.match(/(^| )token=([^;]+)/);
+  return match ? match[2] : null;
+}
+
+export async function logout() {
+  try {
+    // Chama a rota de logout do Laravel
+    await fetch(`${process.env.NEXT_PUBLIC_API_URL}/logout`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${getToken()}`,
+        "Content-Type": "application/json",
+      },
+    });
+  } catch (error) {
+    console.error("Erro ao fazer logout no servidor:", error);
+  } finally {
+    // Remove o token do front-end
+    if (typeof window !== "undefined") {
+      document.cookie = "token=; Max-Age=0; path=/;";
+      window.location.href = "/login"; // redireciona para login
+    }
+  }
 }
