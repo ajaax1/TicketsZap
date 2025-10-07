@@ -20,11 +20,11 @@ import Link from "next/link";
 
 const formSchema = z.object({
   email: z.string().email("E-mail inválido"),
-  password: z.string().min(6, "Senha deve ter no mínimo 6 caracteres"),
+  password: z.string(),
 });
 
 export default function LoginPage() {
-  const router = useRouter(); // ✅ agora está dentro do componente
+  const router = useRouter();
 
   const form = useForm({
     resolver: zodResolver(formSchema),
@@ -34,7 +34,7 @@ export default function LoginPage() {
     },
   });
 
-  async function onSubmit(values: any) {
+  async function onSubmit(values) {
     try {
       const data = await login(values);
       toast.success("Login realizado com sucesso!");
@@ -42,7 +42,7 @@ export default function LoginPage() {
         router.push("/");
       }, 1000);
       console.log("Usuário logado:", data);
-    } catch (err: any) {
+    } catch (err) {
       toast.error(err.message || "Erro ao logar");
       console.error("Erro ao logar:", err.message);
     }

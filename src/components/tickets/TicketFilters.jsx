@@ -17,7 +17,7 @@ import { ptBR } from "date-fns/locale";
 import { useState } from "react";
 
 export function TicketFilters() {
-  const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date } | undefined>();
+  const [dateRange, setDateRange] = useState();
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">

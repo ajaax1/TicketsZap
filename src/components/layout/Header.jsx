@@ -10,17 +10,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Menu } from "lucide-react";
 import Link from "next/link";
+import { logout } from "@/services/auth";
 
-interface HeaderProps {
-  title: string;
-  user: {
-    name: string;
-    email: string;
-    avatar?: string;
-  };
-}
-
-export function Header({ title, user }: HeaderProps) {
+export function Header({ title, user }) {
   return (
     <header className="bg-white dark:bg-gray-900 border-b sticky top-0 z-10 flex justify-center">
       <div className="max-w-6xl container flex justify-between items-center h-16 px-4">
@@ -43,7 +35,7 @@ export function Header({ title, user }: HeaderProps) {
             <DropdownMenuItem asChild>
               <Link href="/dashboard/profile">Meu Perfil</Link>
             </DropdownMenuItem>
-            <DropdownMenuItem>Sair</DropdownMenuItem>
+            <DropdownMenuItem onClick={logout}>Sair</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

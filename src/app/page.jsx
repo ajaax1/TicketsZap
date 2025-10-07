@@ -14,16 +14,9 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import useAuth from "@/hooks/useAuth";
 
-// Mock data - substitua pela sua API real
-type Ticket = {
-  id: string;
-  title: string;
-  createdAt: Date;
-  status: "open" | "closed" | "in_progress";
-};
-
-const mockTickets: Ticket[] = [
+const mockTickets = [
   {
     id: "1",
     title: "Problema com login",

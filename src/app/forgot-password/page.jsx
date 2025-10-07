@@ -27,14 +27,14 @@ const formSchema = z.object({
 export default function ForgotPasswordPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
       email: "",
     },
   });
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values) {
     setIsSubmitting(true);
     
     try {
@@ -59,10 +59,10 @@ export default function ForgotPasswordPage() {
     <div className="flex justify-center items-center min-h-screen p-4 bg-neutral-100">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-        <CardTitle className="text-2xl font-bold text-center">
+          <CardTitle className="text-2xl font-bold text-center">
             Esqueceu a senha?
           </CardTitle>        
-          </CardHeader>
+        </CardHeader>
         
         <CardContent>
           <Form {...form}>
@@ -109,7 +109,8 @@ export default function ForgotPasswordPage() {
           <div className="mt-4 text-center text-sm">
             <Link 
               href="/login" 
-              className="text-blue-600 hover:underline"            >
+              className="text-blue-600 hover:underline"
+            >
               Voltar para o login
             </Link>
           </div>
