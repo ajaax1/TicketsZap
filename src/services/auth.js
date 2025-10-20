@@ -7,9 +7,13 @@ export async function login(values) {
       password: values.password,
     });
 
-    const token = response.data.token;
+    const { token, user } = response.data;
     if (typeof window !== "undefined") {
+      // Salva o token no cookie
       document.cookie = `token=${token}; path=/; secure; samesite=strict`;
+      
+      // Salva os dados do usuário no localStorage
+      localStorage.setItem('user', JSON.stringify(user));
     }
 
     return response.data;
@@ -37,10 +41,20 @@ export async function logout() {
   } catch (error) {
     console.error("Erro ao fazer logout no servidor:", error);
   } finally {
-    // Remove o token do front-end
+    // Remove o token e dados do usuário do front-end
     if (typeof window !== "undefined") {
       document.cookie = "token=; Max-Age=0; path=/;";
+      localStorage.removeItem('user');
       window.location.href = "/login"; // redireciona para login
     }
   }
+}
+
+// Função para obter dados do usuário do localStorage
+export function getCurrentUser() {
+  if (typeof window !== "undefined") {
+    const userData = localStorage.getItem('user');
+    return userData ? JSON.parse(userData) : null;
+  }
+  return null;
 }

@@ -1,11 +1,14 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { Clock, MessageSquare, MoreHorizontal } from "lucide-react"
+import { Clock, MessageSquare, MoreHorizontal, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { formatDistanceToNow } from "date-fns"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { format, formatDistanceToNow } from "date-fns"
 import { ptBR } from "date-fns/locale"
+import { deleteTicket } from "@/services/tickets"
+import { toast } from "sonner"
 
-export function TicketCard({ ticket }) {
+export function TicketCard({ ticket, onDelete }) {
   const statusColors = {
     aberto: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800",
     pendente: "bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-800",
@@ -52,8 +55,40 @@ export function TicketCard({ ticket }) {
     }
   }
 
+  function formatDateTime(dateString) {
+    try {
+      return format(new Date(dateString), "dd/MM/yyyy HH:mm", { locale: ptBR })
+    } catch {
+      return "--/--/---- --:--"
+    }
+  }
+
+  const handleDelete = async (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    
+    if (!confirm("Tem certeza que deseja excluir este chamado? Esta ação não pode ser desfeita.")) {
+      return
+    }
+    
+    try {
+      await deleteTicket(ticket.id)
+      toast.success("Chamado excluído com sucesso!")
+      if (onDelete) {
+        onDelete(ticket.id)
+      }
+    } catch (e) {
+      const apiMessage = e?.response?.data?.message || e?.message || "Erro ao excluir chamado"
+      toast.error(apiMessage)
+      if (typeof window !== "undefined") {
+        // eslint-disable-next-line no-console
+        console.error("Erro ao excluir chamado:", e?.response?.data || e)
+      }
+    }
+  }
+
   return (
-    <div className="group rounded-lg border border-border bg-card p-4 transition-all hover:border-primary/50 hover:shadow-md">
+    <a href={`/tickets/${ticket.id}`} className="block group rounded-lg border border-border bg-card p-4 transition-all hover:border-primary/50 hover:shadow-md">
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 space-y-3">
           <div className="flex items-start gap-3">
@@ -91,23 +126,37 @@ export function TicketCard({ ticket }) {
               </div>
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                 <Clock className="h-3 w-3" />
-                <span>Atualizado {formatRelativeTime(ticket.updated_at)}</span>
+                <span>Atualizado em {formatDateTime(ticket.updated_at)}</span>
               </div>
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                 <MessageSquare className="h-3 w-3" />
-                <span>Criado {formatRelativeTime(ticket.created_at)}</span>
+                <span>Criado em {formatDateTime(ticket.created_at)}</span>
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-            >
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={(e) => e.preventDefault()}
+                >
+                  <MoreHorizontal className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem 
+                  onClick={handleDelete}
+                  className="text-destructive focus:text-destructive"
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Excluir
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>
-    </div>
+    </a>
   )
 }

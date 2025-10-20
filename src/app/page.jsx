@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import { TicketsHeader } from "@/components/tickets-header"
 import { TicketsFilters } from "@/components/tickets-filters"
 import { TicketsList } from "@/components/tickets-list"
+import { TicketsStats } from "@/components/tickets-stats"
 import { getTickets } from "@/services/tickets"
 import { Spinner } from "@/components/ui/spinner"
 
@@ -45,10 +46,17 @@ export default function TicketsPage() {
     setCurrentPage(1)
   }
 
+  const handleTicketDelete = (deletedTicketId) => {
+    setTickets(tickets.filter(ticket => ticket.id !== deletedTicketId))
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <TicketsHeader />
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mb-6">
+          <TicketsStats />
+        </div>
         <TicketsFilters onApply={handleApplyFilters} />
 
         {loading ? (
@@ -60,7 +68,7 @@ export default function TicketsPage() {
             <p className="text-destructive">{error}</p>
           </div>
         ) : (
-          <TicketsList tickets={tickets} paginationData={paginationData} onPageChange={handlePageChange} />
+          <TicketsList tickets={tickets} paginationData={paginationData} onPageChange={handlePageChange} onTicketDelete={handleTicketDelete} />
         )}
       </main>
     </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Search, Plus, Filter, Calendar as CalendarIcon, FilterX } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -61,9 +62,11 @@ export function TicketsFilters({ onApply }) {
             Gerencie e acompanhe todos os chamados de suporte
           </p>
         </div>
-        <Button className="gap-2">
-          <Plus className="h-4 w-4" />
-          Novo Ticket
+        <Button className="gap-2" asChild>
+          <Link href="/tickets/new">
+            <Plus className="h-4 w-4" />
+            Novo Ticket
+          </Link>
         </Button>
       </div>
 

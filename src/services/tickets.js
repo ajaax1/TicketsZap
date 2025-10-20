@@ -16,3 +16,23 @@ export async function getTicketById(id) {
   const response = await api.get(`/tickets/${id}`);
   return response.data;
 }
+
+export async function getTicketStats() {
+  const response = await api.get(`/tickets-stats`)
+  return response.data
+}
+
+export async function createTicket(payload) {
+  const response = await api.post(`/tickets`, payload)
+  return response.data
+}
+
+export async function updateTicket(id, payload) {
+  const response = await api.put(`/tickets/${id}`, payload)
+  return response.data
+}
+
+export async function deleteTicket(id) {
+  const response = await api.delete(`/tickets/${id}`)
+  return response.data
+}
