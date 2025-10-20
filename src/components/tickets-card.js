@@ -20,6 +20,18 @@ export function TicketCard({ ticket }) {
     finalizado: "Finalizado",
   }
 
+  const priorityColors = {
+    baixa: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800",
+    media: "bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-800",
+    alta: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800",
+  }
+
+  const priorityLabels = {
+    baixa: "Baixa",
+    media: "Média",
+    alta: "Alta",
+  }
+
   function getInitials(name) {
     return name
       .split(' ')
@@ -51,6 +63,11 @@ export function TicketCard({ ticket }) {
                 <Badge variant="outline" className={statusColors[ticket.status]}>
                   {statusLabels[ticket.status] || ticket.status}
                 </Badge>
+                {ticket.priority && (
+                  <Badge variant="outline" className={priorityColors[ticket.priority]}>
+                    {priorityLabels[ticket.priority] || ticket.priority}
+                  </Badge>
+                )}
                 <Badge variant="secondary">{ticket.nome_cliente}</Badge>
               </div>
               <h3 className="mt-2 text-base font-semibold text-card-foreground group-hover:text-primary transition-colors">

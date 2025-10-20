@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Plus, Filter, Calendar as CalendarIcon, FilterX } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Popover,
   PopoverContent,
@@ -12,6 +12,7 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { getUsersAlphabetical } from "@/services/users";
 
 export function TicketsFilters({ onApply }) {
   const [statusFilter, setStatusFilter] = useState("todos");
@@ -19,6 +20,19 @@ export function TicketsFilters({ onApply }) {
   const [priorityFilter, setPriorityFilter] = useState("todos");
   const [searchTerm, setSearchTerm] = useState("");
   const [dateRange, setDateRange] = useState(null);
+  const [users, setUsers] = useState([]);
+
+  useEffect(() => {
+    async function loadUsers() {
+      try {
+        const usersData = await getUsersAlphabetical();
+        setUsers(usersData);
+      } catch (error) {
+        console.error("Erro ao carregar usuários:", error);
+      }
+    }
+    loadUsers();
+  }, []);
 
   function handleClear() {
     setStatusFilter("todos");
@@ -26,7 +40,14 @@ export function TicketsFilters({ onApply }) {
     setPriorityFilter("todos");
     setSearchTerm("");
     setDateRange(null);
-    onApply?.({ status: "todos", owner: "todos", priority: "todos", q: "", from: undefined, to: undefined });
+    onApply?.({
+      status: "todos",
+      owner: "todos",
+      priority: "todos",
+      search: "", // 🔄 alterado de q → search
+      from: undefined,
+      to: undefined
+    });
   }
 
   return (
@@ -49,6 +70,7 @@ export function TicketsFilters({ onApply }) {
       <div className="space-y-4">
         <div className="flex flex-wrap items-end gap-3 justify-between">
           <div className="flex flex-wrap items-end gap-3">
+            {/* 🔍 Campo de busca */}
             <div className="flex-shrink-0">
               <label className="block text-sm font-medium text-foreground mb-1">Buscar</label>
               <div className="relative w-64">
@@ -62,6 +84,7 @@ export function TicketsFilters({ onApply }) {
               </div>
             </div>
 
+            {/* 🔖 Status */}
             <div className="flex-shrink-0">
               <label htmlFor="status-filter" className="block text-sm font-medium text-foreground mb-1">Status</label>
               <select
@@ -78,22 +101,25 @@ export function TicketsFilters({ onApply }) {
               </select>
             </div>
 
+            {/* 👤 Responsável */}
             <div className="flex-shrink-0">
-              <label htmlFor="owner-filter" className="block text-sm font-medium text-foreground mb-1">Dono</label>
+              <label htmlFor="owner-filter" className="block text-sm font-medium text-foreground mb-1">Responsável</label>
               <select
                 id="owner-filter"
                 value={ownerFilter}
                 onChange={(e) => setOwnerFilter(e.target.value)}
-                className="w-32 h-10 rounded-md border border-input bg-background pl-3 pr-8 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                className="w-40 h-10 rounded-md border border-input bg-background pl-3 pr-8 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               >
                 <option value="todos">Todos</option>
-                <option value="joao-silva">João Silva</option>
-                <option value="maria-santos">Maria Santos</option>
-                <option value="pedro-oliveira">Pedro Oliveira</option>
-                <option value="ana-costa">Ana Costa</option>
+                {users.map((user) => (
+                  <option key={user.id} value={user.id}>
+                    {user.name}
+                  </option>
+                ))}
               </select>
             </div>
 
+            {/* ⚠️ Prioridade */}
             <div className="flex-shrink-0">
               <label htmlFor="priority-filter" className="block text-sm font-medium text-foreground mb-1">Prioridade</label>
               <select
@@ -109,6 +135,7 @@ export function TicketsFilters({ onApply }) {
               </select>
             </div>
 
+            {/* 📅 Período */}
             <div className="flex-shrink-0">
               <label className="block text-sm font-medium text-foreground mb-1">Período</label>
               <Popover>
@@ -131,6 +158,7 @@ export function TicketsFilters({ onApply }) {
             </div>
           </div>
 
+          {/* 🔘 Botões de ação */}
           <div className="flex gap-2">
             <Button
               variant="outline"
@@ -138,7 +166,14 @@ export function TicketsFilters({ onApply }) {
               onClick={() => {
                 const from = dateRange?.from ? format(dateRange.from, "yyyy-MM-dd") : undefined;
                 const to = dateRange?.to ? format(dateRange.to, "yyyy-MM-dd") : undefined;
-                onApply?.({ status: statusFilter, owner: ownerFilter, priority: priorityFilter, q: searchTerm, from, to });
+                onApply?.({
+                  status: statusFilter,
+                  owner: ownerFilter,
+                  priority: priorityFilter,
+                  search: searchTerm, // 🔄 alterado de q → search
+                  from,
+                  to
+                });
               }}
             >
               <Filter className="h-4 w-4 mr-2" />
