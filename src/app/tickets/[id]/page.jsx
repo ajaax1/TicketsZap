@@ -14,6 +14,7 @@ import { getUsersAlphabetical } from "@/services/users"
 import { getTicketById, updateTicket, deleteTicket } from "@/services/tickets"
 import { toast } from "sonner"
 import { TicketsHeader } from "@/components/tickets-header"
+import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog"
 
 export default function EditarChamado() {
   const params = useParams()
@@ -36,6 +37,7 @@ export default function EditarChamado() {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
 
   const denormalizePriorityFromApi = (value) => {
     if (!value) return ""
@@ -153,11 +155,11 @@ export default function EditarChamado() {
     }
   }
 
-  const handleDelete = async () => {
-    if (!confirm("Tem certeza que deseja excluir este chamado? Esta ação não pode ser desfeita.")) {
-      return
-    }
-    
+  const handleDeleteClick = () => {
+    setShowDeleteDialog(true)
+  }
+
+  const handleConfirmDelete = async () => {
     try {
       setDeleting(true)
       await deleteTicket(ticketId)
@@ -172,6 +174,7 @@ export default function EditarChamado() {
       }
     } finally {
       setDeleting(false)
+      setShowDeleteDialog(false)
     }
   }
 
@@ -181,7 +184,7 @@ export default function EditarChamado() {
       <div className="mx-auto max-w-3xl p-4 md:p-8">
         <div className="mb-6">
           <Link href="/">
-            <Button variant="ghost" size="sm">
+            <Button variant="ghost" size="sm" className="cursor-pointer">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Voltar para Dashboard
             </Button>
@@ -191,7 +194,7 @@ export default function EditarChamado() {
         <Card>
           <CardHeader>
             <CardTitle className="text-2xl">Editar Chamado #{ticketId}</CardTitle>
-            <CardDescription>Atualize os dados do ticket</CardDescription>
+            <CardDescription>Atualize os dados do chamado</CardDescription>
           </CardHeader>
           <CardContent>
             {loading ? (
@@ -277,18 +280,18 @@ export default function EditarChamado() {
                   <Button 
                     type="button" 
                     variant="destructive" 
-                    onClick={handleDelete} 
+                    onClick={handleDeleteClick} 
                     disabled={deleting || submitting}
-                    className="w-full sm:w-auto"
+                    className="w-full sm:w-auto cursor-pointer disabled:cursor-not-allowed"
                   >
                     <Trash2 className="mr-2 h-4 w-4" />
                     {deleting ? "Excluindo..." : "Excluir Chamado"}
                   </Button>
                   <div className="flex flex-col-reverse gap-3 sm:flex-row">
                     <Link href="/">
-                      <Button type="button" variant="outline" className="w-full sm:w-auto bg-transparent">Cancelar</Button>
+                      <Button type="button" variant="outline" className="w-full sm:w-auto bg-transparent cursor-pointer">Cancelar</Button>
                     </Link>
-                    <Button type="submit" disabled={submitting} className="w-full sm:w-auto">
+                    <Button type="submit" disabled={submitting} className="w-full sm:w-auto cursor-pointer disabled:cursor-not-allowed">
                       <Save className="mr-2 h-4 w-4" />
                       {submitting ? "Salvando..." : "Atualizar Chamado"}
                     </Button>
@@ -299,6 +302,17 @@ export default function EditarChamado() {
           </CardContent>
         </Card>
       </div>
+
+      <DeleteConfirmationDialog
+        open={showDeleteDialog}
+        onOpenChange={setShowDeleteDialog}
+        onConfirm={handleConfirmDelete}
+        title="Excluir Chamado"
+        description="Tem certeza que deseja excluir este chamado? Esta ação não pode ser desfeita."
+        confirmText="Excluir"
+        cancelText="Cancelar"
+        isLoading={deleting}
+      />
     </div>
   )
 }

@@ -41,7 +41,7 @@ export function Pagination({ paginationData, onPageChange }) {
           size="sm"
           onClick={handlePrevious}
           disabled={current_page === 1}
-          className="gap-1 bg-transparent"
+          className="gap-1 bg-transparent cursor-pointer disabled:cursor-not-allowed"
         >
           <ChevronLeft className="h-4 w-4" />
           Anterior
@@ -55,7 +55,7 @@ export function Pagination({ paginationData, onPageChange }) {
               size="sm"
               onClick={() => handlePageClick(Number.parseInt(link.label))}
               disabled={link.active}
-              className="min-w-[40px]"
+              className="min-w-[40px] cursor-pointer disabled:cursor-not-allowed"
             >
               {link.label}
             </Button>
@@ -67,7 +67,7 @@ export function Pagination({ paginationData, onPageChange }) {
           size="sm"
           onClick={handleNext}
           disabled={current_page === last_page}
-          className="gap-1 bg-transparent"
+          className="gap-1 bg-transparent cursor-pointer disabled:cursor-not-allowed"
         >
           Próximo
           <ChevronRight className="h-4 w-4" />

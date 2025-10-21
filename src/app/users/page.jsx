@@ -3,18 +3,18 @@
 import { useEffect, useState } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { TicketsHeader } from "@/components/tickets-header"
-import { TicketsFilters } from "@/components/tickets-filters"
-import { TicketsList } from "@/components/tickets-list"
-import { TicketsStats } from "@/components/tickets-stats"
-import { getTickets } from "@/services/tickets"
+import { UsersFilters } from "@/components/users-filters"
+import { UsersList } from "@/components/users-list"
+import { UsersStats } from "@/components/users-stats"
+import { getUsers } from "@/services/users"
 import { Spinner } from "@/components/ui/spinner"
 
-export default function TicketsPage() {
+export default function UsersPage() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const [currentPage, setCurrentPage] = useState(1)
   const [paginationData, setPaginationData] = useState(null)
-  const [tickets, setTickets] = useState([])
+  const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [filters, setFilters] = useState({})
@@ -22,12 +22,8 @@ export default function TicketsPage() {
   // Função para ler filtros da URL
   const getFiltersFromURL = () => {
     const urlFilters = {}
-    if (searchParams.get('status')) urlFilters.status = searchParams.get('status')
-    if (searchParams.get('owner')) urlFilters.owner = searchParams.get('owner')
-    if (searchParams.get('priority')) urlFilters.priority = searchParams.get('priority')
+    if (searchParams.get('role')) urlFilters.role = searchParams.get('role')
     if (searchParams.get('search')) urlFilters.search = searchParams.get('search')
-    if (searchParams.get('from')) urlFilters.from = searchParams.get('from')
-    if (searchParams.get('to')) urlFilters.to = searchParams.get('to')
     return urlFilters
   }
 
@@ -39,28 +35,24 @@ export default function TicketsPage() {
     if (currentPage > 1) params.set('page', currentPage.toString())
     
     // Adiciona filtros que não são valores padrão
-    if (newFilters.status && newFilters.status !== 'todos') params.set('status', newFilters.status)
-    if (newFilters.owner && newFilters.owner !== 'todos') params.set('owner', newFilters.owner)
-    if (newFilters.priority && newFilters.priority !== 'todos') params.set('priority', newFilters.priority)
+    if (newFilters.role && newFilters.role !== 'todos') params.set('role', newFilters.role)
     if (newFilters.search && newFilters.search.trim()) params.set('search', newFilters.search.trim())
-    if (newFilters.from) params.set('from', newFilters.from)
-    if (newFilters.to) params.set('to', newFilters.to)
 
-    const newURL = params.toString() ? `?${params.toString()}` : '/'
+    const newURL = params.toString() ? `?${params.toString()}` : '/users'
     router.replace(newURL, { scroll: false })
   }
 
   async function fetchPage(page, appliedFilters = filters) {
     try {
       setLoading(true)
-      const data = await getTickets(page, appliedFilters)
-      setTickets(Array.isArray(data.data) ? data.data : [])
+      const data = await getUsers(page, appliedFilters)
+      setUsers(Array.isArray(data.data) ? data.data : [])
       setPaginationData(data)
       setError(null)
     } catch (err) {
-      console.error("Erro ao buscar chamados:", err)
-      setError("Erro ao carregar chamados")
-      setTickets([])
+      console.error("Erro ao buscar usuários:", err)
+      setError("Erro ao carregar usuários")
+      setUsers([])
       setPaginationData(null)
     } finally {
       setLoading(false)
@@ -94,8 +86,8 @@ export default function TicketsPage() {
     updateURLWithFilters(newFilters)
   }
 
-  const handleTicketDelete = (deletedTicketId) => {
-    setTickets(tickets.filter(ticket => ticket.id !== deletedTicketId))
+  const handleUserDelete = (deletedUserId) => {
+    setUsers(users.filter(user => user.id !== deletedUserId))
   }
 
   return (
@@ -103,9 +95,9 @@ export default function TicketsPage() {
       <TicketsHeader />
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="mb-6">
-          <TicketsStats />
+          <UsersStats />
         </div>
-        <TicketsFilters onApply={handleApplyFilters} initialFilters={filters} />
+        <UsersFilters onApply={handleApplyFilters} initialFilters={filters} />
 
         {loading ? (
           <div className="mt-6 flex justify-center py-8">
@@ -116,7 +108,7 @@ export default function TicketsPage() {
             <p className="text-destructive">{error}</p>
           </div>
         ) : (
-          <TicketsList tickets={tickets} paginationData={paginationData} onPageChange={handlePageChange} onTicketDelete={handleTicketDelete} />
+          <UsersList users={users} paginationData={paginationData} onPageChange={handlePageChange} onUserDelete={handleUserDelete} />
         )}
       </main>
     </div>

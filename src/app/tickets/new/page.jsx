@@ -132,7 +132,7 @@ export default function NovoChamado() {
       <div className="mx-auto max-w-3xl p-4 md:p-8">
         <div className="mb-6">
           <Link href="/">
-            <Button variant="ghost" size="sm">
+            <Button variant="ghost" size="sm" className="cursor-pointer">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Voltar para Dashboard
             </Button>
@@ -142,7 +142,7 @@ export default function NovoChamado() {
         <Card>
           <CardHeader>
             <CardTitle className="text-2xl">Novo Chamado</CardTitle>
-            <CardDescription>Preencha os dados abaixo para criar um novo ticket de atendimento</CardDescription>
+            <CardDescription>Preencha os dados abaixo para criar um novo chamado de atendimento</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -223,9 +223,9 @@ export default function NovoChamado() {
 
               <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                 <Link href="/">
-                  <Button type="button" variant="outline" className="w-full sm:w-auto bg-transparent">Cancelar</Button>
+                  <Button type="button" variant="outline" className="w-full sm:w-auto bg-transparent cursor-pointer">Cancelar</Button>
                 </Link>
-                <Button type="submit" disabled={submitting} className="w-full sm:w-auto">
+                <Button type="submit" disabled={submitting} className="w-full sm:w-auto cursor-pointer disabled:cursor-not-allowed">
                   <Save className="mr-2 h-4 w-4" />
                   {submitting ? "Salvando..." : "Criar Chamado"}
                 </Button>

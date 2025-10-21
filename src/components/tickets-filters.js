@@ -15,12 +15,16 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { getUsersAlphabetical } from "@/services/users";
 
-export function TicketsFilters({ onApply }) {
-  const [statusFilter, setStatusFilter] = useState("todos");
-  const [ownerFilter, setOwnerFilter] = useState("todos");
-  const [priorityFilter, setPriorityFilter] = useState("todos");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [dateRange, setDateRange] = useState(null);
+export function TicketsFilters({ onApply, initialFilters = {} }) {
+  const [statusFilter, setStatusFilter] = useState(initialFilters.status || "todos");
+  const [ownerFilter, setOwnerFilter] = useState(initialFilters.owner || "todos");
+  const [priorityFilter, setPriorityFilter] = useState(initialFilters.priority || "todos");
+  const [searchTerm, setSearchTerm] = useState(initialFilters.search || "");
+  const [dateRange, setDateRange] = useState(
+    initialFilters.from && initialFilters.to 
+      ? { from: new Date(initialFilters.from), to: new Date(initialFilters.to) }
+      : null
+  );
   const [users, setUsers] = useState([]);
 
   useEffect(() => {
@@ -34,6 +38,19 @@ export function TicketsFilters({ onApply }) {
     }
     loadUsers();
   }, []);
+
+  // Atualiza os filtros quando initialFilters mudam
+  useEffect(() => {
+    setStatusFilter(initialFilters.status || "todos");
+    setOwnerFilter(initialFilters.owner || "todos");
+    setPriorityFilter(initialFilters.priority || "todos");
+    setSearchTerm(initialFilters.search || "");
+    setDateRange(
+      initialFilters.from && initialFilters.to 
+        ? { from: new Date(initialFilters.from), to: new Date(initialFilters.to) }
+        : null
+    );
+  }, [initialFilters]);
 
   function handleClear() {
     setStatusFilter("todos");
@@ -56,16 +73,16 @@ export function TicketsFilters({ onApply }) {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-3xl font-bold tracking-tight text-foreground">
-            Tickets de Suporte
+            Chamados de Suporte
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
             Gerencie e acompanhe todos os chamados de suporte
           </p>
         </div>
-        <Button className="gap-2" asChild>
+        <Button className="gap-2 cursor-pointer" asChild>
           <Link href="/tickets/new">
             <Plus className="h-4 w-4" />
-            Novo Ticket
+            Novo Chamado
           </Link>
         </Button>
       </div>
@@ -79,7 +96,7 @@ export function TicketsFilters({ onApply }) {
               <div className="relative w-64">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  placeholder="Buscar tickets..."
+                  placeholder="Buscar chamados..."
                   className="pl-9 h-10"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -165,7 +182,7 @@ export function TicketsFilters({ onApply }) {
           <div className="flex gap-2">
             <Button
               variant="outline"
-              className="h-10"
+              className="h-10 cursor-pointer"
               onClick={() => {
                 const from = dateRange?.from ? format(dateRange.from, "yyyy-MM-dd") : undefined;
                 const to = dateRange?.to ? format(dateRange.to, "yyyy-MM-dd") : undefined;
@@ -182,7 +199,7 @@ export function TicketsFilters({ onApply }) {
               <Filter className="h-4 w-4 mr-2" />
               Filtrar
             </Button>
-            <Button variant="outline" className="h-10" onClick={handleClear}>
+            <Button variant="outline" className="h-10 cursor-pointer" onClick={handleClear}>
               <FilterX className="h-4 w-4 mr-2" />
               Limpar
             </Button>

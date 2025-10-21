@@ -7,8 +7,12 @@ import { format, formatDistanceToNow } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { deleteTicket } from "@/services/tickets"
 import { toast } from "sonner"
+import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog"
+import { useState } from "react"
 
 export function TicketCard({ ticket, onDelete }) {
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
   const statusColors = {
     aberto: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800",
     pendente: "bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/20 dark:text-yellow-300 dark:border-yellow-800",
@@ -63,20 +67,21 @@ export function TicketCard({ ticket, onDelete }) {
     }
   }
 
-  const handleDelete = async (e) => {
+  const handleDeleteClick = (e) => {
     e.preventDefault()
     e.stopPropagation()
-    
-    if (!confirm("Tem certeza que deseja excluir este chamado? Esta ação não pode ser desfeita.")) {
-      return
-    }
-    
+    setShowDeleteDialog(true)
+  }
+
+  const handleConfirmDelete = async () => {
     try {
+      setIsDeleting(true)
       await deleteTicket(ticket.id)
       toast.success("Chamado excluído com sucesso!")
       if (onDelete) {
         onDelete(ticket.id)
       }
+      setShowDeleteDialog(false)
     } catch (e) {
       const apiMessage = e?.response?.data?.message || e?.message || "Erro ao excluir chamado"
       toast.error(apiMessage)
@@ -84,10 +89,13 @@ export function TicketCard({ ticket, onDelete }) {
         // eslint-disable-next-line no-console
         console.error("Erro ao excluir chamado:", e?.response?.data || e)
       }
+    } finally {
+      setIsDeleting(false)
     }
   }
 
   return (
+    <>
     <a href={`/tickets/${ticket.id}`} className="block group rounded-lg border border-border bg-card p-4 transition-all hover:border-primary/50 hover:shadow-md">
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 space-y-3">
@@ -138,7 +146,7 @@ export function TicketCard({ ticket, onDelete }) {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                   onClick={(e) => e.preventDefault()}
                 >
                   <MoreHorizontal className="h-4 w-4" />
@@ -146,7 +154,7 @@ export function TicketCard({ ticket, onDelete }) {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem 
-                  onClick={handleDelete}
+                  onClick={handleDeleteClick}
                   className="text-destructive focus:text-destructive"
                 >
                   <Trash2 className="mr-2 h-4 w-4" />
@@ -158,5 +166,17 @@ export function TicketCard({ ticket, onDelete }) {
         </div>
       </div>
     </a>
+
+    <DeleteConfirmationDialog
+      open={showDeleteDialog}
+      onOpenChange={setShowDeleteDialog}
+      onConfirm={handleConfirmDelete}
+      title="Excluir Chamado"
+      description="Tem certeza que deseja excluir este chamado? Esta ação não pode ser desfeita."
+      confirmText="Excluir"
+      cancelText="Cancelar"
+      isLoading={isDeleting}
+    />
+  </>
   )
 }

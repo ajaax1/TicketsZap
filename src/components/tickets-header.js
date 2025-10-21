@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
+import Link from "next/link"
 import { Bell, Settings, LogOut, User } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
@@ -44,30 +45,30 @@ export function TicketsHeader() {
               <h1 className="text-xl font-semibold text-foreground">Suporte</h1>
             </div>
             <nav className="hidden md:flex items-center gap-6">
-              <a href="#" className="text-sm font-medium text-foreground hover:text-muted-foreground transition-colors">
-                Tickets
-              </a>
-              <a href="#" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+              <Link href="/" className="text-sm font-medium text-foreground hover:text-muted-foreground transition-colors">
+                Chamados
+              </Link>
+              <Link href="/users" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+                Usuários
+              </Link>
+              <Link href="#" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
                 Relatórios
-              </a>
-              <a href="#" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-                Equipe
-              </a>
+              </Link>
             </nav>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="outline" size="icon" className="relative bg-transparent">
+            <Button variant="outline" size="icon" className="relative bg-transparent cursor-pointer">
               <Bell className="h-4 w-4" />
               <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
                 3
               </span>
             </Button>
-            <Button variant="outline" size="icon">
+            <Button variant="outline" size="icon" className="cursor-pointer">
               <Settings className="h-4 w-4" />
             </Button>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                <Button variant="ghost" className="relative h-8 w-8 rounded-full cursor-pointer">
                   <Avatar className="h-8 w-8">
                     <AvatarImage src={user?.avatar || user?.profile_photo_url} />
                     <AvatarFallback>

@@ -8,12 +8,12 @@ export async function getTickets(page = 1, filters = {}) {
   if (filters.search && filters.search.trim()) params.search = filters.search.trim()
   if (filters.from) params.from = filters.from
   if (filters.to) params.to = filters.to
-  const response = await api.get(`/tickets`, { params });
+  const response = await api.get(`/tickets-filtro`, { params });
   return response.data;
 }
 
 export async function getTicketById(id) {
-  const response = await api.get(`/tickets/${id}`);
+  const response = await api.get(`/ticket/${id}`);
   return response.data;
 }
 
