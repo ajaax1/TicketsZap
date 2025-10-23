@@ -157,10 +157,7 @@ function TicketsPageContent() {
       console.log('TicketsPage state updated to:', page)
       
       // Reset navigation flag após um delay
-      setTimeout(() => {
-        setIsNavigating(false)
-        console.log('Navigation completed')
-      }, 100)
+     
     } catch (error) {
       console.error('TicketsPage error updating URL:', error)
       isUpdatingURL.current = false
