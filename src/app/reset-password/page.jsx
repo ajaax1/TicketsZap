@@ -1,6 +1,11 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
+import dynamic from "next/dynamic"
+
+// Force dynamic rendering to prevent prerendering issues
+export const dynamic = 'force-dynamic'
+
 import { useSearchParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -11,7 +16,7 @@ import { verifyResetToken, resetPassword } from "@/services/password"
 import { toast } from "sonner"
 import { LoadingSpinner } from "@/components/loading-spinner"
 
-export default function ResetPasswordPage() {
+function ResetPasswordForm() {
   const searchParams = useSearchParams()
   const router = useRouter()
   
@@ -287,5 +292,19 @@ export default function ResetPasswordPage() {
         </Card>
       </div>
     </div>
+  )
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <LoadingSpinner text="Carregando..." />
+        </div>
+      </div>
+    }>
+      <ResetPasswordForm />
+    </Suspense>
   )
 }
