@@ -86,7 +86,6 @@ export function TicketCard({ ticket, onDelete }) {
       const apiMessage = e?.response?.data?.message || e?.message || "Erro ao excluir chamado"
       toast.error(apiMessage)
       if (typeof window !== "undefined") {
-        // eslint-disable-next-line no-console
         console.error("Erro ao excluir chamado:", e?.response?.data || e)
       }
     } finally {
