@@ -130,7 +130,7 @@ function UsersPageContent() {
             <p className="text-destructive">{error}</p>
           </div>
         ) : (
-          <UsersList users={users} paginationData={paginationData} onPageChange={handlePageChange} onUserDelete={handleUserDelete} />
+          <UsersList users={users} paginationData={paginationData} onPageChange={handlePageChange} onUserDelete={handleUserDelete} loading={loading} />
         )}
       </main>
     </div>

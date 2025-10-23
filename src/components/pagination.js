@@ -4,7 +4,7 @@ import { useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 
-export function Pagination({ paginationData, onPageChange }) {
+export function Pagination({ paginationData, onPageChange, loading = false }) {
   if (!paginationData) return null
 
   const { current_page, last_page, links, from, to, total } = paginationData
@@ -41,7 +41,7 @@ export function Pagination({ paginationData, onPageChange }) {
           variant="outline"
           size="sm"
           onClick={handlePrevious}
-          disabled={current_page === 1}
+          disabled={current_page === 1 || loading}
           className="gap-1 bg-transparent cursor-pointer disabled:cursor-not-allowed"
         >
           <ChevronLeft className="h-4 w-4" />
@@ -55,7 +55,7 @@ export function Pagination({ paginationData, onPageChange }) {
               variant={link.active ? "default" : "outline"}
               size="sm"
               onClick={() => handlePageClick(Number.parseInt(link.label))}
-              disabled={link.active}
+              disabled={link.active || loading}
               className="min-w-[40px] cursor-pointer disabled:cursor-not-allowed"
             >
               {link.label}
@@ -67,7 +67,7 @@ export function Pagination({ paginationData, onPageChange }) {
           variant="outline"
           size="sm"
           onClick={handleNext}
-          disabled={current_page === last_page}
+          disabled={current_page === last_page || loading}
           className="gap-1 bg-transparent cursor-pointer disabled:cursor-not-allowed"
         >
           Próximo

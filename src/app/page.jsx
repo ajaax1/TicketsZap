@@ -142,7 +142,7 @@ function TicketsPageContent() {
             <p className="text-destructive">{error}</p>
           </div>
         ) : (
-          <TicketsList tickets={tickets} paginationData={paginationData} onPageChange={handlePageChange} onTicketDelete={handleTicketDelete} />
+          <TicketsList tickets={tickets} paginationData={paginationData} onPageChange={handlePageChange} onTicketDelete={handleTicketDelete} loading={loading} />
         )}
       </main>
     </div>
