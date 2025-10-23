@@ -65,12 +65,15 @@ function UsersPageContent() {
   // Carrega filtros da URL na inicialização
   useEffect(() => {
     if (isUpdatingURL.current) {
+      console.log('Skipping URL update - we are updating programmatically')
       isUpdatingURL.current = false
       return
     }
     
     const urlFilters = getFiltersFromURL()
     const urlPage = searchParams.get('page') ? parseInt(searchParams.get('page')) : 1
+    
+    console.log('URL changed - loading filters:', urlFilters, 'page:', urlPage)
     
     setFilters(urlFilters)
     setCurrentPage(urlPage)
@@ -84,13 +87,12 @@ function UsersPageContent() {
   }, [currentPage, filters, fetchPage])
 
   const handlePageChange = useCallback((page) => {
+    console.log('handlePageChange called with page:', page, 'currentPage:', currentPage)
+    
     // Marca que estamos atualizando a URL para evitar loop
     isUpdatingURL.current = true
     
-    // Atualiza o estado primeiro
-    setCurrentPage(page)
-    
-    // Atualiza URL com a nova página
+    // Atualiza URL primeiro para garantir sincronização
     const params = new URLSearchParams()
     
     // Adiciona nova página
@@ -101,8 +103,14 @@ function UsersPageContent() {
     if (filters.search && filters.search.trim()) params.set('search', filters.search.trim())
 
     const newURL = params.toString() ? `?${params.toString()}` : '/users'
+    console.log('Updating URL to:', newURL)
+    
+    // Atualiza URL primeiro
     router.replace(newURL, { scroll: false })
-  }, [filters, router])
+    
+    // Depois atualiza o estado
+    setCurrentPage(page)
+  }, [filters, router, currentPage])
 
   const handleApplyFilters = (newFilters) => {
     setFilters(newFilters)
