@@ -78,8 +78,7 @@ function UsersPageContent() {
   }, [currentPage, filters])
 
   const handlePageChange = (page) => {
-    setCurrentPage(page)
-    // Atualiza URL com a nova página
+    // Atualiza URL primeiro com a nova página
     const params = new URLSearchParams()
     
     // Adiciona nova página
@@ -91,6 +90,9 @@ function UsersPageContent() {
 
     const newURL = params.toString() ? `?${params.toString()}` : '/users'
     router.replace(newURL, { scroll: false })
+    
+    // Atualiza o estado após a URL
+    setCurrentPage(page)
   }
 
   const handleApplyFilters = (newFilters) => {
