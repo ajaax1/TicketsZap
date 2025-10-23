@@ -1,11 +1,6 @@
 "use client"
 
 import { useState, useEffect, Suspense } from "react"
-import dynamic from "next/dynamic"
-
-// Force dynamic rendering to prevent prerendering issues
-export const dynamic = 'force-dynamic'
-
 import { useSearchParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -294,6 +289,9 @@ function ResetPasswordForm() {
     </div>
   )
 }
+
+// Force dynamic rendering to prevent prerendering issues
+export const dynamic = 'force-dynamic'
 
 export default function ResetPasswordPage() {
   return (
