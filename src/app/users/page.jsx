@@ -19,8 +19,7 @@ function UsersPageContent() {
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [filters, setFilters] = useState({})
-  const isUpdatingURL = useRef(false)
+  const [isNavigating, setIsNavigating] = useState(false)
 
   // Função para ler filtros da URL
   const getFiltersFromURL = () => {
@@ -48,7 +47,13 @@ function UsersPageContent() {
   const fetchPage = useCallback(async (page, appliedFilters = filters) => {
     try {
       setLoading(true)
-      const data = await getUsers(page, appliedFilters)
+      console.log('Fetching users page:', page, 'with filters:', appliedFilters)
+      
+      // Adiciona timestamp para cache busting
+      const cacheBuster = Date.now()
+      const data = await getUsers(page, { ...appliedFilters, _t: cacheBuster })
+      
+      console.log('Users page data received:', data)
       setUsers(Array.isArray(data.data) ? data.data : [])
       setPaginationData(data)
       setError(null)
@@ -93,7 +98,7 @@ function UsersPageContent() {
   }, [currentPage, filters, fetchPage])
 
   const handlePageChange = useCallback((page) => {
-    console.log('UsersPage handlePageChange called with page:', page, 'currentPage:', currentPage)
+    console.log('UsersPage handlePageChange called with page:', page, 'currentPage:', currentPage, 'isNavigating:', isNavigating)
     
     // Validação básica
     if (!page || page < 1) {
@@ -107,7 +112,14 @@ function UsersPageContent() {
       return
     }
     
-    // Marca que estamos atualizando a URL para evitar loop
+    // Evita múltiplas navegações simultâneas
+    if (isNavigating) {
+      console.log('Already navigating, skipping update')
+      return
+    }
+    
+    // Marca que estamos navegando
+    setIsNavigating(true)
     isUpdatingURL.current = true
     
     // Atualiza URL primeiro para garantir sincronização
@@ -131,11 +143,18 @@ function UsersPageContent() {
       // Depois atualiza o estado
       setCurrentPage(page)
       console.log('UsersPage state updated to:', page)
+      
+      // Reset navigation flag após um delay
+      setTimeout(() => {
+        setIsNavigating(false)
+        console.log('Navigation completed')
+      }, 100)
     } catch (error) {
       console.error('UsersPage error updating URL:', error)
       isUpdatingURL.current = false
+      setIsNavigating(false)
     }
-  }, [filters, router, currentPage])
+  }, [filters, router, currentPage, isNavigating])
 
   const handleApplyFilters = (newFilters) => {
     setFilters(newFilters)
