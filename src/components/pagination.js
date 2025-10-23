@@ -5,29 +5,28 @@ import { Button } from "@/components/ui/button"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 
 export function Pagination({ paginationData, onPageChange, loading = false }) {
+  const handlePageClick = useCallback((pageNumber) => {
+    if (pageNumber !== paginationData?.current_page && onPageChange) {
+      onPageChange(pageNumber)
+    }
+  }, [paginationData?.current_page, onPageChange])
+
+  const handlePrevious = useCallback(() => {
+    if (paginationData?.current_page > 1 && onPageChange) {
+      onPageChange(paginationData.current_page - 1)
+    }
+  }, [paginationData?.current_page, onPageChange])
+
+  const handleNext = useCallback(() => {
+    if (paginationData?.current_page < paginationData?.last_page && onPageChange) {
+      onPageChange(paginationData.current_page + 1)
+    }
+  }, [paginationData?.current_page, paginationData?.last_page, onPageChange])
+
   if (!paginationData) return null
 
   const { current_page, last_page, links, from, to, total } = paginationData
-
   const pageLinks = links.filter((link) => link.label !== "&laquo; Previous" && link.label !== "Next &raquo;")
-
-  const handlePageClick = useCallback((pageNumber) => {
-    if (pageNumber !== current_page && onPageChange) {
-      onPageChange(pageNumber)
-    }
-  }, [current_page, onPageChange])
-
-  const handlePrevious = useCallback(() => {
-    if (current_page > 1 && onPageChange) {
-      onPageChange(current_page - 1)
-    }
-  }, [current_page, onPageChange])
-
-  const handleNext = useCallback(() => {
-    if (current_page < last_page && onPageChange) {
-      onPageChange(current_page + 1)
-    }
-  }, [current_page, last_page, onPageChange])
 
   return (
     <div className="flex items-center justify-between border-t border-border pt-4 mt-6">

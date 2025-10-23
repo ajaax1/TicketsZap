@@ -73,15 +73,12 @@ function TicketsPageContent() {
   // Carrega filtros da URL na inicialização
   useEffect(() => {
     if (isUpdatingURL.current) {
-      console.log('Skipping URL update - we are updating programmatically')
       isUpdatingURL.current = false
       return
     }
     
     const urlFilters = getFiltersFromURL()
     const urlPage = searchParams.get('page') ? parseInt(searchParams.get('page')) : 1
-    
-    console.log('URL changed - loading filters:', urlFilters, 'page:', urlPage)
     
     setFilters(urlFilters)
     setCurrentPage(urlPage)
@@ -95,8 +92,6 @@ function TicketsPageContent() {
   }, [currentPage, filters, fetchPage])
 
   const handlePageChange = useCallback((page) => {
-    console.log('handlePageChange called with page:', page, 'currentPage:', currentPage)
-    
     // Marca que estamos atualizando a URL para evitar loop
     isUpdatingURL.current = true
     
@@ -115,7 +110,6 @@ function TicketsPageContent() {
     if (filters.to) params.set('to', filters.to)
 
     const newURL = params.toString() ? `?${params.toString()}` : '/'
-    console.log('Updating URL to:', newURL)
     
     // Atualiza URL primeiro
     router.replace(newURL, { scroll: false })
