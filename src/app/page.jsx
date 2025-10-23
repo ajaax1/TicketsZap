@@ -87,7 +87,22 @@ function TicketsPageContent() {
 
   const handlePageChange = (page) => {
     setCurrentPage(page)
-    updateURLWithFilters(filters)
+    // Atualiza URL com a nova página
+    const params = new URLSearchParams()
+    
+    // Adiciona nova página
+    if (page > 1) params.set('page', page.toString())
+    
+    // Adiciona filtros existentes
+    if (filters.status && filters.status !== 'todos') params.set('status', filters.status)
+    if (filters.owner && filters.owner !== 'todos') params.set('owner', filters.owner)
+    if (filters.priority && filters.priority !== 'todos') params.set('priority', filters.priority)
+    if (filters.search && filters.search.trim()) params.set('search', filters.search.trim())
+    if (filters.from) params.set('from', filters.from)
+    if (filters.to) params.set('to', filters.to)
+
+    const newURL = params.toString() ? `?${params.toString()}` : '/'
+    router.replace(newURL, { scroll: false })
   }
 
   const handleApplyFilters = (newFilters) => {

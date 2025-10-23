@@ -1,5 +1,6 @@
 "use client"
 
+import { useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 
@@ -10,23 +11,23 @@ export function Pagination({ paginationData, onPageChange }) {
 
   const pageLinks = links.filter((link) => link.label !== "&laquo; Previous" && link.label !== "Next &raquo;")
 
-  const handlePageClick = (pageNumber) => {
+  const handlePageClick = useCallback((pageNumber) => {
     if (pageNumber !== current_page && onPageChange) {
       onPageChange(pageNumber)
     }
-  }
+  }, [current_page, onPageChange])
 
-  const handlePrevious = () => {
+  const handlePrevious = useCallback(() => {
     if (current_page > 1 && onPageChange) {
       onPageChange(current_page - 1)
     }
-  }
+  }, [current_page, onPageChange])
 
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     if (current_page < last_page && onPageChange) {
       onPageChange(current_page + 1)
     }
-  }
+  }, [current_page, last_page, onPageChange])
 
   return (
     <div className="flex items-center justify-between border-t border-border pt-4 mt-6">

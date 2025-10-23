@@ -79,7 +79,18 @@ function UsersPageContent() {
 
   const handlePageChange = (page) => {
     setCurrentPage(page)
-    updateURLWithFilters(filters)
+    // Atualiza URL com a nova página
+    const params = new URLSearchParams()
+    
+    // Adiciona nova página
+    if (page > 1) params.set('page', page.toString())
+    
+    // Adiciona filtros existentes
+    if (filters.role && filters.role !== 'todos') params.set('role', filters.role)
+    if (filters.search && filters.search.trim()) params.set('search', filters.search.trim())
+
+    const newURL = params.toString() ? `?${params.toString()}` : '/users'
+    router.replace(newURL, { scroll: false })
   }
 
   const handleApplyFilters = (newFilters) => {
