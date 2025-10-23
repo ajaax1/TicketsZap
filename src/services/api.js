@@ -7,7 +7,7 @@ function getTokenFromCookie() {
 }
 
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api",
+  baseURL: process.env.NEXT_PUBLIC_API_URL || "https://ruanhigorsilva1761246298000.0991612.meusitehostgator.com.br/api",
 });
 
 api.interceptors.request.use((config) => {
