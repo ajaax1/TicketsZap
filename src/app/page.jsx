@@ -73,6 +73,7 @@ function TicketsPageContent() {
   // Carrega filtros da URL na inicialização
   useEffect(() => {
     if (isUpdatingURL.current) {
+      console.log('Skipping URL update - we are updating programmatically')
       isUpdatingURL.current = false
       return
     }
@@ -80,9 +81,17 @@ function TicketsPageContent() {
     const urlFilters = getFiltersFromURL()
     const urlPage = searchParams.get('page') ? parseInt(searchParams.get('page')) : 1
     
-    setFilters(urlFilters)
-    setCurrentPage(urlPage)
-  }, [searchParams])
+    console.log('URL changed - loading filters:', urlFilters, 'page:', urlPage, 'currentPage:', currentPage)
+    
+    // Só atualiza se realmente mudou
+    if (urlPage !== currentPage) {
+      console.log('Page changed from URL:', urlPage, 'updating state')
+      setFilters(urlFilters)
+      setCurrentPage(urlPage)
+    } else {
+      console.log('Page unchanged, skipping state update')
+    }
+  }, [searchParams, currentPage])
 
   // Busca dados quando filtros ou página mudam
   useEffect(() => {
@@ -97,6 +106,12 @@ function TicketsPageContent() {
     // Validação básica
     if (!page || page < 1) {
       console.error('Invalid page number:', page)
+      return
+    }
+    
+    // Evita mudança para a mesma página
+    if (page === currentPage) {
+      console.log('Same page, skipping update')
       return
     }
     
