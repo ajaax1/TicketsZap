@@ -84,6 +84,14 @@ function UsersPageContent() {
   }, [currentPage, filters, fetchPage])
 
   const handlePageChange = useCallback((page) => {
+    console.log('UsersPage handlePageChange called with page:', page, 'currentPage:', currentPage)
+    
+    // Validação básica
+    if (!page || page < 1) {
+      console.error('Invalid page number:', page)
+      return
+    }
+    
     // Marca que estamos atualizando a URL para evitar loop
     isUpdatingURL.current = true
     
@@ -98,12 +106,20 @@ function UsersPageContent() {
     if (filters.search && filters.search.trim()) params.set('search', filters.search.trim())
 
     const newURL = params.toString() ? `?${params.toString()}` : '/users'
+    console.log('UsersPage updating URL to:', newURL)
     
-    // Atualiza URL primeiro
-    router.replace(newURL, { scroll: false })
-    
-    // Depois atualiza o estado
-    setCurrentPage(page)
+    try {
+      // Atualiza URL primeiro
+      router.replace(newURL, { scroll: false })
+      console.log('UsersPage URL updated successfully')
+      
+      // Depois atualiza o estado
+      setCurrentPage(page)
+      console.log('UsersPage state updated to:', page)
+    } catch (error) {
+      console.error('UsersPage error updating URL:', error)
+      isUpdatingURL.current = false
+    }
   }, [filters, router, currentPage])
 
   const handleApplyFilters = (newFilters) => {

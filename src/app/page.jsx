@@ -92,6 +92,14 @@ function TicketsPageContent() {
   }, [currentPage, filters, fetchPage])
 
   const handlePageChange = useCallback((page) => {
+    console.log('TicketsPage handlePageChange called with page:', page, 'currentPage:', currentPage)
+    
+    // Validação básica
+    if (!page || page < 1) {
+      console.error('Invalid page number:', page)
+      return
+    }
+    
     // Marca que estamos atualizando a URL para evitar loop
     isUpdatingURL.current = true
     
@@ -110,12 +118,20 @@ function TicketsPageContent() {
     if (filters.to) params.set('to', filters.to)
 
     const newURL = params.toString() ? `?${params.toString()}` : '/'
+    console.log('TicketsPage updating URL to:', newURL)
     
-    // Atualiza URL primeiro
-    router.replace(newURL, { scroll: false })
-    
-    // Depois atualiza o estado
-    setCurrentPage(page)
+    try {
+      // Atualiza URL primeiro
+      router.replace(newURL, { scroll: false })
+      console.log('TicketsPage URL updated successfully')
+      
+      // Depois atualiza o estado
+      setCurrentPage(page)
+      console.log('TicketsPage state updated to:', page)
+    } catch (error) {
+      console.error('TicketsPage error updating URL:', error)
+      isUpdatingURL.current = false
+    }
   }, [filters, router, currentPage])
 
   const handleApplyFilters = (newFilters) => {
