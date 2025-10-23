@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, Suspense } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { TicketsHeader } from "@/components/tickets-header"
 import { TicketsFilters } from "@/components/tickets-filters"
@@ -9,7 +9,7 @@ import { TicketsStats } from "@/components/tickets-stats"
 import { getTickets } from "@/services/tickets"
 import { Spinner } from "@/components/ui/spinner"
 
-export default function TicketsPage() {
+function TicketsPageContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const [currentPage, setCurrentPage] = useState(1)
@@ -120,5 +120,22 @@ export default function TicketsPage() {
         )}
       </main>
     </div>
+  )
+}
+
+export default function TicketsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-background">
+        <TicketsHeader />
+        <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+          <div className="mt-6 flex justify-center py-8">
+            <Spinner className="w-8 h-8 text-primary" />
+          </div>
+        </main>
+      </div>
+    }>
+      <TicketsPageContent />
+    </Suspense>
   )
 }
