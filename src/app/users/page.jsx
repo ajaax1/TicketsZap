@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, Suspense } from "react"
+import { useEffect, useState, Suspense, useCallback, useRef } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { TicketsHeader } from "@/components/tickets-header"
 import { UsersFilters } from "@/components/users-filters"
@@ -20,6 +20,7 @@ function UsersPageContent() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [filters, setFilters] = useState({})
+  const isUpdatingURL = useRef(false)
 
   // Função para ler filtros da URL
   const getFiltersFromURL = () => {
@@ -44,7 +45,7 @@ function UsersPageContent() {
     router.replace(newURL, { scroll: false })
   }
 
-  async function fetchPage(page, appliedFilters = filters) {
+  const fetchPage = useCallback(async (page, appliedFilters = filters) => {
     try {
       setLoading(true)
       const data = await getUsers(page, appliedFilters)
@@ -59,10 +60,15 @@ function UsersPageContent() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [filters])
 
   // Carrega filtros da URL na inicialização
   useEffect(() => {
+    if (isUpdatingURL.current) {
+      isUpdatingURL.current = false
+      return
+    }
+    
     const urlFilters = getFiltersFromURL()
     const urlPage = searchParams.get('page') ? parseInt(searchParams.get('page')) : 1
     
@@ -75,10 +81,16 @@ function UsersPageContent() {
     if (Object.keys(filters).length > 0 || currentPage > 0) {
       fetchPage(currentPage, filters)
     }
-  }, [currentPage, filters])
+  }, [currentPage, filters, fetchPage])
 
-  const handlePageChange = (page) => {
-    // Atualiza URL primeiro com a nova página
+  const handlePageChange = useCallback((page) => {
+    // Marca que estamos atualizando a URL para evitar loop
+    isUpdatingURL.current = true
+    
+    // Atualiza o estado primeiro
+    setCurrentPage(page)
+    
+    // Atualiza URL com a nova página
     const params = new URLSearchParams()
     
     // Adiciona nova página
@@ -90,10 +102,7 @@ function UsersPageContent() {
 
     const newURL = params.toString() ? `?${params.toString()}` : '/users'
     router.replace(newURL, { scroll: false })
-    
-    // Atualiza o estado após a URL
-    setCurrentPage(page)
-  }
+  }, [filters, router])
 
   const handleApplyFilters = (newFilters) => {
     setFilters(newFilters)

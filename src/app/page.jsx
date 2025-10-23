@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, Suspense } from "react"
+import { useEffect, useState, Suspense, useCallback, useRef } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { TicketsHeader } from "@/components/tickets-header"
 import { TicketsFilters } from "@/components/tickets-filters"
@@ -20,6 +20,7 @@ function TicketsPageContent() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [filters, setFilters] = useState({})
+  const isUpdatingURL = useRef(false)
 
   // Função para ler filtros da URL
   const getFiltersFromURL = () => {
@@ -52,7 +53,7 @@ function TicketsPageContent() {
     router.replace(newURL, { scroll: false })
   }
 
-  async function fetchPage(page, appliedFilters = filters) {
+  const fetchPage = useCallback(async (page, appliedFilters = filters) => {
     try {
       setLoading(true)
       const data = await getTickets(page, appliedFilters)
@@ -67,10 +68,15 @@ function TicketsPageContent() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [filters])
 
   // Carrega filtros da URL na inicialização
   useEffect(() => {
+    if (isUpdatingURL.current) {
+      isUpdatingURL.current = false
+      return
+    }
+    
     const urlFilters = getFiltersFromURL()
     const urlPage = searchParams.get('page') ? parseInt(searchParams.get('page')) : 1
     
@@ -83,10 +89,16 @@ function TicketsPageContent() {
     if (Object.keys(filters).length > 0 || currentPage > 0) {
       fetchPage(currentPage, filters)
     }
-  }, [currentPage, filters])
+  }, [currentPage, filters, fetchPage])
 
-  const handlePageChange = (page) => {
-    // Atualiza URL primeiro com a nova página
+  const handlePageChange = useCallback((page) => {
+    // Marca que estamos atualizando a URL para evitar loop
+    isUpdatingURL.current = true
+    
+    // Atualiza o estado primeiro
+    setCurrentPage(page)
+    
+    // Atualiza URL com a nova página
     const params = new URLSearchParams()
     
     // Adiciona nova página
@@ -102,10 +114,7 @@ function TicketsPageContent() {
 
     const newURL = params.toString() ? `?${params.toString()}` : '/'
     router.replace(newURL, { scroll: false })
-    
-    // Atualiza o estado após a URL
-    setCurrentPage(page)
-  }
+  }, [filters, router])
 
   const handleApplyFilters = (newFilters) => {
     setFilters(newFilters)
