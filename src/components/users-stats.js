@@ -10,7 +10,7 @@ export function UsersStats() {
     total: 0, 
     admins: 0, 
     support: 0, 
-    assistants: 0
+    assistant: 0
   })
 
   useEffect(() => {
@@ -21,21 +21,21 @@ export function UsersStats() {
           total: Number(data.total) || 0,
           admins: Number(data.admins) || 0,
           support: Number(data.support) || 0,
-          assistants: Number(data.assistants) || 0,
+          assistant: Number(data.assistant) || 0,
         })
       } catch (e) {
         setStats({ 
           total: 0, 
           admins: 0, 
           support: 0, 
-          assistants: 0
+          assistant: 0
         })
       }
     }
     fetchStats()
   }, [])
 
-  const { total, admins, support, assistants } = stats
+  const { total, admins, support, assistant } = stats
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -78,7 +78,7 @@ export function UsersStats() {
           <UserCheck className="h-4 w-4 text-green-600" />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-green-600">{assistants}</div>
+          <div className="text-2xl font-bold text-green-600">{assistant}</div>
           <p className="text-xs text-muted-foreground mt-1">Auxiliares de suporte</p>
         </CardContent>
       </Card>
