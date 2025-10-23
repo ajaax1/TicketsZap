@@ -6,8 +6,15 @@ export default function useAuth() {
   const router = useRouter();
 
   useEffect(() => {
-    const token = document.cookie.includes("token=");
-    if (!token) router.push("/login");
+    // Verifica se existe token no cookie
+    const hasToken = document.cookie.includes("token=");
+    
+    // Verifica se existe usuário no localStorage
+    const hasUser = localStorage.getItem('user');
+    
+    if (!hasToken || !hasUser) {
+      router.push("/login");
+    }
   }, [router]);
 }
 

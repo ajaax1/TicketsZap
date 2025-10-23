@@ -18,6 +18,7 @@ import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { forgotPassword } from "@/services/password";
 
 // Schema de validação
 const formSchema = z.object({
@@ -38,8 +39,7 @@ export default function ForgotPasswordPage() {
     setIsSubmitting(true);
     
     try {
-      // Simulação de requisição à API
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await forgotPassword(values.email);
       
       toast.success("E-mail enviado!", {
         description: `Enviamos instruções para ${values.email}. Verifique sua caixa de entrada.`,
@@ -47,8 +47,11 @@ export default function ForgotPasswordPage() {
       
       form.reset();
     } catch (error) {
+      console.error("Erro ao enviar e-mail de reset:", error);
+      const errorMessage = error?.response?.data?.message || "Ocorreu um erro ao tentar enviar o e-mail. Tente novamente.";
+      
       toast.error("Erro ao enviar", {
-        description: "Ocorreu um erro ao tentar enviar o e-mail. Tente novamente.",
+        description: errorMessage,
       });
     } finally {
       setIsSubmitting(false);

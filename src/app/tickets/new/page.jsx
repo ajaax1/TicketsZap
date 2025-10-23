@@ -13,8 +13,10 @@ import { getUsersAlphabetical } from "@/services/users"
 import { createTicket } from "@/services/tickets"
 import { toast } from "sonner"
 import { TicketsHeader } from "@/components/tickets-header"
+import useAuth from "@/hooks/useAuth"
 
 export default function NovoChamado() {
+  useAuth() // Verifica autenticação
   const [formData, setFormData] = useState({
     title: "",
     nome_cliente: "",

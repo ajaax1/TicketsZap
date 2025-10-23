@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { Bell, Settings, LogOut, User } from "lucide-react"
@@ -17,12 +18,21 @@ import { logout, getCurrentUser } from "@/services/auth"
 
 export function TicketsHeader() {
   const [user, setUser] = useState(null)
+  const pathname = usePathname()
 
   useEffect(() => {
     // Busca dados do usuário do localStorage
     const userData = getCurrentUser()
     setUser(userData)
   }, [])
+
+  // Função para determinar se um link está ativo
+  const isActive = (path) => {
+    if (path === "/") {
+      return pathname === "/"
+    }
+    return pathname.startsWith(path)
+  }
 
   function getInitials(name) {
     if (!name) return "U"
@@ -45,13 +55,34 @@ export function TicketsHeader() {
               <h1 className="text-xl font-semibold text-foreground">Suporte</h1>
             </div>
             <nav className="hidden md:flex items-center gap-6">
-              <Link href="/" className="text-sm font-medium text-foreground hover:text-muted-foreground transition-colors">
+              <Link 
+                href="/" 
+                className={`text-sm font-medium transition-colors ${
+                  isActive("/") 
+                    ? "text-foreground" 
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
                 Chamados
               </Link>
-              <Link href="/users" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+              <Link 
+                href="/users" 
+                className={`text-sm font-medium transition-colors ${
+                  isActive("/users") 
+                    ? "text-foreground" 
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
                 Usuários
               </Link>
-              <Link href="#" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+              <Link 
+                href="#" 
+                className={`text-sm font-medium transition-colors ${
+                  isActive("/reports") 
+                    ? "text-foreground" 
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
                 Relatórios
               </Link>
             </nav>

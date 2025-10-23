@@ -15,8 +15,11 @@ import { getTicketById, updateTicket, deleteTicket } from "@/services/tickets"
 import { toast } from "sonner"
 import { TicketsHeader } from "@/components/tickets-header"
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog"
+import { LoadingSpinner } from "@/components/loading-spinner"
+import useAuth from "@/hooks/useAuth"
 
 export default function EditarChamado() {
+  useAuth() // Verifica autenticação
   const params = useParams()
   const router = useRouter()
   const ticketId = params?.id
@@ -198,7 +201,7 @@ export default function EditarChamado() {
           </CardHeader>
           <CardContent>
             {loading ? (
-              <div className="text-sm text-muted-foreground">Carregando...</div>
+              <LoadingSpinner text="Carregando dados do chamado..." size="small" />
             ) : (
               <form onSubmit={handleSubmit} className="space-y-6">
                 {serverError && (

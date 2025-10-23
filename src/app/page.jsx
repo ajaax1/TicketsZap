@@ -7,9 +7,11 @@ import { TicketsFilters } from "@/components/tickets-filters"
 import { TicketsList } from "@/components/tickets-list"
 import { TicketsStats } from "@/components/tickets-stats"
 import { getTickets } from "@/services/tickets"
-import { Spinner } from "@/components/ui/spinner"
+import { LoadingSpinner } from "@/components/loading-spinner"
+import useAuth from "@/hooks/useAuth"
 
 function TicketsPageContent() {
+  useAuth() // Verifica autenticação
   const searchParams = useSearchParams()
   const router = useRouter()
   const [currentPage, setCurrentPage] = useState(1)
@@ -108,9 +110,7 @@ function TicketsPageContent() {
         <TicketsFilters onApply={handleApplyFilters} initialFilters={filters} />
 
         {loading ? (
-          <div className="mt-6 flex justify-center py-8">
-            <Spinner className="w-8 h-8 text-primary" />
-          </div>
+          <LoadingSpinner text="Carregando chamados..." />
         ) : error ? (
           <div className="mt-6 text-center py-8">
             <p className="text-destructive">{error}</p>
@@ -129,9 +129,7 @@ export default function TicketsPage() {
       <div className="min-h-screen bg-background">
         <TicketsHeader />
         <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-          <div className="mt-6 flex justify-center py-8">
-            <Spinner className="w-8 h-8 text-primary" />
-          </div>
+        <LoadingSpinner text="Carregando..." />
         </main>
       </div>
     }>

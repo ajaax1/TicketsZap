@@ -176,7 +176,8 @@ export function UsersTable({ users = [], onUserDelete }) {
                           <DropdownMenuItem 
                             onClick={(e) => {
                               e.preventDefault()
-                              // TODO: Implementar edição
+                              e.stopPropagation()
+                              window.location.href = `/users/${user.id}`
                             }}
                             className="cursor-pointer"
                           >
