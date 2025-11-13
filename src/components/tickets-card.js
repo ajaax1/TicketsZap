@@ -70,6 +70,14 @@ export function TicketCard({ ticket, onDelete }) {
     }
   }
 
+  function stripHTML(html) {
+    if (!html) return ""
+    // Remove todas as tags HTML e retorna apenas o texto
+    const tmp = document.createElement("DIV")
+    tmp.innerHTML = html
+    return tmp.textContent || tmp.innerText || ""
+  }
+
   const handleDeleteClick = (e) => {
     e.preventDefault()
     e.stopPropagation()
@@ -118,7 +126,7 @@ export function TicketCard({ ticket, onDelete }) {
               <h3 className="mt-2 text-base font-semibold text-card-foreground group-hover:text-primary transition-colors">
                 {ticket.title}
               </h3>
-              <p className="mt-1 text-sm text-muted-foreground line-clamp-1">{ticket.descricao}</p>
+              <p className="mt-1 text-sm text-muted-foreground line-clamp-1">{stripHTML(ticket.descricao)}</p>
             </div>
           </div>
 

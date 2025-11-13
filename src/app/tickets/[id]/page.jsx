@@ -6,7 +6,7 @@ import { useParams, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
+import { RichTextEditor } from "@/components/ui/rich-text-editor"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ArrowLeft, Save, Trash2 } from "lucide-react"
@@ -212,7 +212,7 @@ export default function EditarChamado() {
   return (
     <div className="min-h-screen bg-background">
       <TicketsHeader />
-      <div className="mx-auto max-w-3xl p-4 md:p-8">
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="mb-6">
           <Link href="/">
             <Button variant="ghost" size="sm" className="cursor-pointer">
@@ -254,7 +254,7 @@ export default function EditarChamado() {
                   </div>
                   <div className="space-y-2">
                     <Label>Descrição</Label>
-                    <Textarea value={formData.descricao} disabled readOnly rows={5} />
+                    <div className="border rounded-md p-3 min-h-[100px] bg-muted/30" dangerouslySetInnerHTML={{ __html: formData.descricao || "" }} />
                   </div>
                   <div className="grid gap-6 md:grid-cols-3">
                     <div className="space-y-2">
@@ -297,7 +297,7 @@ export default function EditarChamado() {
 
                 <div className="space-y-2">
                   <Label htmlFor="descricao">Descrição <span className="text-destructive">*</span></Label>
-                  <Textarea id="descricao" placeholder="Descreva detalhadamente o problema ou solicitação" value={formData.descricao} onChange={(e) => setFormData({ ...formData, descricao: e.target.value })} className={errors.descricao ? "border-destructive" : ""} rows={5} />
+                  <RichTextEditor id="descricao" placeholder="Descreva detalhadamente o problema ou solicitação" value={formData.descricao} onChange={(e) => setFormData({ ...formData, descricao: e.target.value })} error={errors.descricao} rows={5} />
                   {errors.descricao && <p className="text-sm text-destructive">{errors.descricao}</p>}
                 </div>
 
