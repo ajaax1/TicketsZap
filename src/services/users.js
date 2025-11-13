@@ -10,6 +10,22 @@ export async function getUsersAlphabetical() {
   }
 }
 
+/**
+ * Busca apenas usuários com role "cliente" em ordem alfabética
+ * Útil para seleção de cliente em tickets
+ */
+export async function getClientesAlphabetical() {
+  try {
+    const response = await api.get("/users-alphabetical", {
+      params: { role: "cliente" }
+    }); 
+    return response.data;
+  } catch (error) {
+    console.error("Erro ao buscar clientes em ordem alfabética:", error);
+    throw error;
+  }
+}
+
 export async function getUsers(page = 1, filters = {}) {
   const params = { page }
   if (filters.search && filters.search.trim()) params.search = filters.search.trim()

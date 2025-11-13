@@ -78,6 +78,7 @@ export function UsersFilters({ onApply, initialFilters = {} }) {
                 <option value="admin">Administrador</option>
                 <option value="support">Suporte</option>
                 <option value="assistant">Assistente</option>
+                <option value="cliente">Cliente</option>
               </select>
             </div>
           </div>

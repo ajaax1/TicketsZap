@@ -9,8 +9,11 @@ import { deleteTicket } from "@/services/tickets"
 import { toast } from "sonner"
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog"
 import { useState } from "react"
+import { usePermissions } from "@/hooks/usePermissions"
+import { Paperclip } from "lucide-react"
 
 export function TicketCard({ ticket, onDelete }) {
+  const { canDeleteTickets } = usePermissions()
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const statusColors = {
@@ -131,6 +134,24 @@ export function TicketCard({ ticket, onDelete }) {
                   {ticket.user?.name || "Usuário não encontrado"}
                 </span>
               </div>
+              {ticket.cliente && (
+                <div className="flex items-center gap-2">
+                  <Avatar className="h-6 w-6">
+                    <AvatarFallback className="text-xs bg-purple-100 text-purple-800">
+                      {ticket.cliente.name ? getInitials(ticket.cliente.name) : "??"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="text-xs text-muted-foreground">
+                    Cliente: {ticket.cliente.name}
+                  </span>
+                </div>
+              )}
+              {ticket.attachments && ticket.attachments.length > 0 && (
+                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                  <Paperclip className="h-3 w-3" />
+                  <span>{ticket.attachments.length} anexo(s)</span>
+                </div>
+              )}
               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                 <Clock className="h-3 w-3" />
                 <span>Atualizado em {formatDateTime(ticket.updated_at)}</span>
@@ -140,27 +161,29 @@ export function TicketCard({ ticket, onDelete }) {
                 <span>Criado em {formatDateTime(ticket.created_at)}</span>
               </div>
             </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                  onClick={(e) => e.preventDefault()}
-                >
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem 
-                  onClick={handleDeleteClick}
-                  className="text-destructive focus:text-destructive"
-                >
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Excluir
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {canDeleteTickets && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                    onClick={(e) => e.preventDefault()}
+                  >
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem 
+                    onClick={handleDeleteClick}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Excluir
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
         </div>
       </div>

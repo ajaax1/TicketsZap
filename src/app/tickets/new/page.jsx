@@ -9,14 +9,16 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ArrowLeft, Save } from "lucide-react"
-import { getUsersAlphabetical } from "@/services/users"
+import { getUsersAlphabetical, getClientesAlphabetical } from "@/services/users"
 import { createTicket } from "@/services/tickets"
 import { toast } from "sonner"
 import { TicketsHeader } from "@/components/tickets-header"
 import useAuth from "@/hooks/useAuth"
+import { usePermissions } from "@/hooks/usePermissions"
 
 export default function NovoChamado() {
   useAuth() // Verifica autenticação
+  const { canAssignCliente, isCliente } = usePermissions()
   const [formData, setFormData] = useState({
     title: "",
     nome_cliente: "",
@@ -25,24 +27,40 @@ export default function NovoChamado() {
     status: "",
     priority: "",
     user_id: "",
+    cliente_id: "",
   })
 
   const [errors, setErrors] = useState({})
   const [serverError, setServerError] = useState("")
   const [users, setUsers] = useState([])
+  const [clientes, setClientes] = useState([])
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
     async function loadUsers() {
       try {
-        const data = await getUsersAlphabetical()
-        setUsers(Array.isArray(data) ? data : [])
+        // Carrega atendentes (não clientes) para user_id
+        const usersData = await getUsersAlphabetical()
+        const atendentes = Array.isArray(usersData) 
+          ? usersData.filter(u => u.role !== 'cliente')
+          : []
+        setUsers(atendentes)
+        
+        // Se admin/support, carrega clientes para cliente_id
+        if (canAssignCliente) {
+          try {
+            const clientesData = await getClientesAlphabetical()
+            setClientes(Array.isArray(clientesData) ? clientesData : [])
+          } catch (e) {
+            console.warn("Não foi possível carregar clientes:", e)
+          }
+        }
       } catch (e) {
         toast.error("Não foi possível carregar usuários")
       }
     }
     loadUsers()
-  }, [])
+  }, [canAssignCliente])
 
   const formatWhatsApp = (value) => {
     const numbers = value.replace(/\D/g, "")
@@ -92,6 +110,11 @@ export default function NovoChamado() {
         priority: normalizePriority(formData.priority),
         user_id: Number(formData.user_id),
       }
+      
+      // Admin/Support podem definir cliente_id
+      if (canAssignCliente && formData.cliente_id) {
+        payload.cliente_id = Number(formData.cliente_id)
+      }
       await createTicket(payload)
       toast.success("Chamado criado com sucesso!")
       setServerError("")
@@ -103,6 +126,7 @@ export default function NovoChamado() {
         status: "",
         priority: "",
         user_id: "",
+        cliente_id: "",
       })
       setErrors({})
     } catch (e) {
@@ -175,7 +199,7 @@ export default function NovoChamado() {
                 {errors.descricao && <p className="text-sm text-destructive">{errors.descricao}</p>}
               </div>
 
-              <div className="grid gap-6 md:grid-cols-3">
+              <div className={`grid gap-6 ${canAssignCliente ? 'md:grid-cols-2 lg:grid-cols-4' : 'md:grid-cols-3'}`}>
                 <div className="space-y-2">
                   <Label htmlFor="status">Status <span className="text-destructive">*</span></Label>
                   <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
@@ -221,6 +245,24 @@ export default function NovoChamado() {
                   </Select>
                   {errors.user_id && <p className="text-sm text-destructive">{errors.user_id}</p>}
                 </div>
+
+                {canAssignCliente && (
+                  <div className="space-y-2">
+                    <Label htmlFor="cliente_id">Cliente (Usuário)</Label>
+                    <Select value={formData.cliente_id} onValueChange={(value) => setFormData({ ...formData, cliente_id: value })}>
+                      <SelectTrigger id="cliente_id">
+                        <SelectValue placeholder="Selecione o cliente (opcional)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">Nenhum</SelectItem>
+                        {clientes.map((cliente) => (
+                          <SelectItem key={cliente.id} value={String(cliente.id)}>{cliente.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-sm text-muted-foreground">Opcional - Vincula o chamado a um usuário cliente</p>
+                  </div>
+                )}
               </div>
 
               <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">

@@ -8,6 +8,7 @@ export async function getTickets(page = 1, filters = {}) {
   if (filters.search && filters.search.trim()) params.search = filters.search.trim()
   if (filters.from) params.from = filters.from
   if (filters.to) params.to = filters.to
+  if (filters.cliente_id) params.cliente_id = filters.cliente_id
   const response = await api.get(`/tickets-filtro`, { params });
   return response.data;
 }

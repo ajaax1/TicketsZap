@@ -8,6 +8,7 @@ export function usePermissions() {
   const [isAdmin, setIsAdmin] = useState(false)
   const [isSupport, setIsSupport] = useState(false)
   const [isAssistant, setIsAssistant] = useState(false)
+  const [isCliente, setIsCliente] = useState(false)
   const [isHydrated, setIsHydrated] = useState(false)
 
   useEffect(() => {
@@ -21,6 +22,7 @@ export function usePermissions() {
       setIsAdmin(userData.role === 'admin')
       setIsSupport(userData.role === 'support')
       setIsAssistant(userData.role === 'assistant')
+      setIsCliente(userData.role === 'cliente')
     }
   }, [])
 
@@ -28,16 +30,27 @@ export function usePermissions() {
   const canCreateUsers = isAdmin
   const canEditUsers = isAdmin
   const canDeleteUsers = isAdmin
+  
+  // Permissões de tickets
+  const canEditTickets = isAdmin || isSupport || isAssistant
+  const canDeleteTickets = isAdmin || isSupport
+  const canDeleteAttachments = isAdmin || isSupport || isAssistant
+  const canAssignCliente = isAdmin || isSupport
 
   return {
     user,
     isAdmin,
     isSupport,
     isAssistant,
+    isCliente,
     canManageUsers,
     canCreateUsers,
     canEditUsers,
     canDeleteUsers,
+    canEditTickets,
+    canDeleteTickets,
+    canDeleteAttachments,
+    canAssignCliente,
     isHydrated
   }
 }

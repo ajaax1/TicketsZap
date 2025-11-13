@@ -10,16 +10,19 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ArrowLeft, Save, Trash2 } from "lucide-react"
-import { getUsersAlphabetical } from "@/services/users"
+import { getUsersAlphabetical, getClientesAlphabetical } from "@/services/users"
 import { getTicketById, updateTicket, deleteTicket } from "@/services/tickets"
 import { toast } from "sonner"
 import { TicketsHeader } from "@/components/tickets-header"
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog"
 import { LoadingSpinner } from "@/components/loading-spinner"
+import { TicketAttachments } from "@/components/ticket-attachments"
 import useAuth from "@/hooks/useAuth"
+import { usePermissions } from "@/hooks/usePermissions"
 
 export default function EditarChamado() {
   useAuth() // Verifica autenticação
+  const { canAssignCliente, canEditTickets, canDeleteTickets } = usePermissions()
   const params = useParams()
   const router = useRouter()
   const ticketId = params?.id
@@ -32,11 +35,13 @@ export default function EditarChamado() {
     status: "",
     priority: "",
     user_id: "",
+    cliente_id: "",
   })
 
   const [errors, setErrors] = useState({})
   const [serverError, setServerError] = useState("")
   const [users, setUsers] = useState([])
+  const [clientes, setClientes] = useState([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -58,7 +63,21 @@ export default function EditarChamado() {
           getUsersAlphabetical(),
           getTicketById(ticketId),
         ])
-        setUsers(Array.isArray(usersData) ? usersData : [])
+        // Filtra apenas atendentes (não clientes) para user_id
+        const atendentes = Array.isArray(usersData) 
+          ? usersData.filter(u => u.role !== 'cliente')
+          : []
+        setUsers(atendentes)
+
+        // Se admin/support, carrega clientes para cliente_id
+        if (canAssignCliente) {
+          try {
+            const clientesData = await getClientesAlphabetical()
+            setClientes(Array.isArray(clientesData) ? clientesData : [])
+          } catch (e) {
+            console.warn("Não foi possível carregar clientes:", e)
+          }
+        }
 
         if (ticketData) {
           setFormData({
@@ -69,6 +88,7 @@ export default function EditarChamado() {
             status: ticketData.status || "",
             priority: denormalizePriorityFromApi(ticketData.priority || ""),
             user_id: ticketData.user_id ? String(ticketData.user_id) : "",
+            cliente_id: ticketData.cliente_id ? String(ticketData.cliente_id) : "",
           })
         }
         setServerError("")
@@ -82,7 +102,7 @@ export default function EditarChamado() {
     if (ticketId) {
       loadUsersAndTicket()
     }
-  }, [ticketId])
+  }, [ticketId, canAssignCliente])
 
   const formatWhatsApp = (value) => {
     const numbers = value.replace(/\D/g, "")
@@ -131,6 +151,14 @@ export default function EditarChamado() {
         status: formData.status,
         priority: normalizePriority(formData.priority),
         user_id: Number(formData.user_id),
+      }
+      
+      // Admin/Support podem alterar cliente_id
+      if (canAssignCliente && formData.cliente_id) {
+        payload.cliente_id = Number(formData.cliente_id)
+      } else if (canAssignCliente && !formData.cliente_id) {
+        // Se limpar o campo, envia null para remover o vínculo
+        payload.cliente_id = null
       }
       await updateTicket(ticketId, payload)
       toast.success("Chamado atualizado com sucesso!")
@@ -197,11 +225,53 @@ export default function EditarChamado() {
         <Card>
           <CardHeader>
             <CardTitle className="text-2xl">Editar Chamado #{ticketId}</CardTitle>
-            <CardDescription>Atualize os dados do chamado</CardDescription>
+            <CardDescription>
+              {canEditTickets ? "Atualize os dados do chamado" : "Visualize os dados do chamado (somente leitura)"}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             {loading ? (
               <LoadingSpinner text="Carregando dados do chamado..." size="small" />
+            ) : !canEditTickets ? (
+              <div className="space-y-6">
+                <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md">
+                  <p className="text-sm text-yellow-800 dark:text-yellow-300">
+                    Você não tem permissão para editar chamados. Esta página está em modo somente leitura.
+                  </p>
+                </div>
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <Label>Título</Label>
+                    <Input value={formData.title} disabled readOnly />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Nome do Cliente</Label>
+                    <Input value={formData.nome_cliente} disabled readOnly />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>WhatsApp</Label>
+                    <Input value={formData.whatsapp_numero || ""} disabled readOnly />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Descrição</Label>
+                    <Textarea value={formData.descricao} disabled readOnly rows={5} />
+                  </div>
+                  <div className="grid gap-6 md:grid-cols-3">
+                    <div className="space-y-2">
+                      <Label>Status</Label>
+                      <Input value={formData.status} disabled readOnly />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Prioridade</Label>
+                      <Input value={formData.priority} disabled readOnly />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Responsável</Label>
+                      <Input value={users.find(u => String(u.id) === formData.user_id)?.name || ""} disabled readOnly />
+                    </div>
+                  </div>
+                </div>
+              </div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-6">
                 {serverError && (
@@ -231,7 +301,7 @@ export default function EditarChamado() {
                   {errors.descricao && <p className="text-sm text-destructive">{errors.descricao}</p>}
                 </div>
 
-                <div className="grid gap-6 md:grid-cols-3">
+                <div className={`grid gap-6 ${canAssignCliente ? 'md:grid-cols-2 lg:grid-cols-4' : 'md:grid-cols-3'}`}>
                   <div className="space-y-2">
                     <Label htmlFor="status">Status <span className="text-destructive">*</span></Label>
                     <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
@@ -277,19 +347,39 @@ export default function EditarChamado() {
                     </Select>
                     {errors.user_id && <p className="text-sm text-destructive">{errors.user_id}</p>}
                   </div>
+
+                  {canAssignCliente && (
+                    <div className="space-y-2">
+                      <Label htmlFor="cliente_id">Cliente (Usuário)</Label>
+                      <Select value={formData.cliente_id} onValueChange={(value) => setFormData({ ...formData, cliente_id: value })}>
+                        <SelectTrigger id="cliente_id">
+                          <SelectValue placeholder="Selecione o cliente (opcional)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="">Nenhum</SelectItem>
+                          {clientes.map((cliente) => (
+                            <SelectItem key={cliente.id} value={String(cliente.id)}>{cliente.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-sm text-muted-foreground">Opcional - Vincula o chamado a um usuário cliente</p>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-between">
-                  <Button 
-                    type="button" 
-                    variant="destructive" 
-                    onClick={handleDeleteClick} 
-                    disabled={deleting || submitting}
-                    className="w-full sm:w-auto cursor-pointer disabled:cursor-not-allowed"
-                  >
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    {deleting ? "Excluindo..." : "Excluir Chamado"}
-                  </Button>
+                  {canDeleteTickets && (
+                    <Button 
+                      type="button" 
+                      variant="destructive" 
+                      onClick={handleDeleteClick} 
+                      disabled={deleting || submitting}
+                      className="w-full sm:w-auto cursor-pointer disabled:cursor-not-allowed"
+                    >
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      {deleting ? "Excluindo..." : "Excluir Chamado"}
+                    </Button>
+                  )}
                   <div className="flex flex-col-reverse gap-3 sm:flex-row">
                     <Link href="/">
                       <Button type="button" variant="outline" className="w-full sm:w-auto bg-transparent cursor-pointer">Cancelar</Button>
@@ -304,6 +394,10 @@ export default function EditarChamado() {
             )}
           </CardContent>
         </Card>
+
+        <div className="mt-6">
+          <TicketAttachments ticketId={ticketId} />
+        </div>
       </div>
 
       <DeleteConfirmationDialog
