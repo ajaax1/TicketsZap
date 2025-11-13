@@ -351,12 +351,15 @@ export default function EditarChamado() {
                   {canAssignCliente && (
                     <div className="space-y-2">
                       <Label htmlFor="cliente_id">Cliente (Usuário)</Label>
-                      <Select value={formData.cliente_id} onValueChange={(value) => setFormData({ ...formData, cliente_id: value })}>
+                      <Select 
+                        value={formData.cliente_id || "none"} 
+                        onValueChange={(value) => setFormData({ ...formData, cliente_id: value === "none" ? "" : value })}
+                      >
                         <SelectTrigger id="cliente_id">
                           <SelectValue placeholder="Selecione o cliente (opcional)" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="">Nenhum</SelectItem>
+                          <SelectItem value="none">Nenhum</SelectItem>
                           {clientes.map((cliente) => (
                             <SelectItem key={cliente.id} value={String(cliente.id)}>{cliente.name}</SelectItem>
                           ))}

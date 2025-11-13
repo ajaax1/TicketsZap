@@ -22,18 +22,35 @@ export function TicketAttachments({ ticketId, initialAttachments = [] }) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [attachmentToDelete, setAttachmentToDelete] = useState(null)
 
+  // Se não houver ticketId, não renderiza o componente
+  if (!ticketId) {
+    return null
+  }
+
   useEffect(() => {
     async function loadAttachments() {
+      if (!ticketId) {
+        setAttachments([])
+        return
+      }
+      
       try {
         const data = await getTicketAttachments(ticketId)
         setAttachments(Array.isArray(data) ? data : [])
       } catch (error) {
-        console.error("Erro ao carregar anexos:", error)
+        // Se for 404, significa que não há anexos ainda (ou rota não existe)
+        // Tratamos como array vazio ao invés de erro
+        if (error?.response?.status === 404) {
+          console.log("Nenhum anexo encontrado para este ticket")
+          setAttachments([])
+        } else {
+          console.error("Erro ao carregar anexos:", error)
+          // Em caso de outros erros, mantém array vazio
+          setAttachments([])
+        }
       }
     }
-    if (ticketId) {
-      loadAttachments()
-    }
+    loadAttachments()
   }, [ticketId])
 
   const isImage = (mimeType) => {
@@ -55,6 +72,11 @@ export function TicketAttachments({ ticketId, initialAttachments = [] }) {
   const handleFileSelect = async (e) => {
     const files = Array.from(e.target.files)
     if (files.length === 0) return
+
+    if (!ticketId) {
+      toast.error("ID do ticket não encontrado")
+      return
+    }
 
     // Validação: máximo 10 arquivos
     if (files.length > 10) {
@@ -82,6 +104,7 @@ export function TicketAttachments({ ticketId, initialAttachments = [] }) {
     } catch (error) {
       const message = error?.response?.data?.message || error?.message || "Erro ao enviar arquivos"
       toast.error(message)
+      console.error("Erro ao fazer upload de anexos:", error)
     } finally {
       setUploading(false)
     }
@@ -105,6 +128,7 @@ export function TicketAttachments({ ticketId, initialAttachments = [] }) {
     } catch (error) {
       const message = error?.response?.data?.message || error?.message || "Erro ao excluir anexo"
       toast.error(message)
+      console.error("Erro ao excluir anexo:", error)
     } finally {
       setDeletingId(null)
     }

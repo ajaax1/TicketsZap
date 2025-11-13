@@ -20,6 +20,8 @@ function UsersPageContent() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [isNavigating, setIsNavigating] = useState(false)
+  const [filters, setFilters] = useState({})
+  const isUpdatingURL = useRef(false)
 
   // Função para ler filtros da URL
   const getFiltersFromURL = () => {
@@ -44,7 +46,7 @@ function UsersPageContent() {
     router.replace(newURL, { scroll: false })
   }
 
-  const fetchPage = useCallback(async (page, appliedFilters = filters) => {
+  const fetchPage = useCallback(async (page, appliedFilters = {}) => {
     try {
       setLoading(true)
       console.log('Fetching users page:', page, 'with filters:', appliedFilters)
@@ -65,7 +67,7 @@ function UsersPageContent() {
     } finally {
       setLoading(false)
     }
-  }, [filters])
+  }, [])
 
   // Carrega filtros da URL na inicialização
   useEffect(() => {
@@ -80,14 +82,14 @@ function UsersPageContent() {
     
     console.log('URL changed - loading filters:', urlFilters, 'page:', urlPage, 'currentPage:', currentPage)
     
-    // Só atualiza se realmente mudou
+    // Atualiza página se mudou
     if (urlPage !== currentPage) {
       console.log('Page changed from URL:', urlPage, 'updating state')
-      setFilters(urlFilters)
       setCurrentPage(urlPage)
-    } else {
-      console.log('Page unchanged, skipping state update')
     }
+    
+    // Sempre atualiza filtros da URL (pode ter mudado mesmo se página não mudou)
+    setFilters(urlFilters)
   }, [searchParams, currentPage])
 
   // Busca dados quando filtros ou página mudam
