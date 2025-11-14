@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Menu } from "lucide-react";
 import Link from "next/link";
 import { logout } from "@/services/auth";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 
 export function Header({ title, user }) {
   return (
@@ -18,26 +19,30 @@ export function Header({ title, user }) {
       <div className="max-w-6xl container flex justify-between items-center h-16 px-4">
         <h1 className="text-xl font-bold">{title}</h1>
         
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="flex items-center gap-2">
-              <Avatar className="h-8 w-8">
-                <AvatarImage src={user.avatar} />
-                <AvatarFallback>
-                  {user.name.charAt(0)}
-                </AvatarFallback>
-              </Avatar>
-              <span className="hidden md:inline">{user.name}</span>
-              <Menu className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem asChild>
-              <Link href="/dashboard/profile">Meu Perfil</Link>
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={logout}>Sair</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex items-center gap-2">
+          <NotificationBell />
+          
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="flex items-center gap-2">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={user.avatar} />
+                  <AvatarFallback>
+                    {user.name.charAt(0)}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="hidden md:inline">{user.name}</span>
+                <Menu className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/profile">Meu Perfil</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={logout}>Sair</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
     </header>
   );

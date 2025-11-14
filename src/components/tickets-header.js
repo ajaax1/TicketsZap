@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { Bell, Settings, LogOut, User } from "lucide-react"
+import { Settings, LogOut, User } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   DropdownMenu,
@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { logout, getCurrentUser } from "@/services/auth"
+import { NotificationBell } from "@/components/notifications/NotificationBell"
 
 export function TicketsHeader() {
   const [user, setUser] = useState(null)
@@ -88,12 +89,7 @@ export function TicketsHeader() {
             </nav>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="outline" size="icon" className="relative bg-transparent cursor-pointer">
-              <Bell className="h-4 w-4" />
-              <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
-                3
-              </span>
-            </Button>
+            <NotificationBell />
             <Button variant="outline" size="icon" className="cursor-pointer">
               <Settings className="h-4 w-4" />
             </Button>
