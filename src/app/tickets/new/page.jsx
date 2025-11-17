@@ -259,7 +259,9 @@ export default function NovoChamado() {
                       <SelectContent>
                         <SelectItem value="none">Nenhum</SelectItem>
                         {clientes.map((cliente) => (
-                          <SelectItem key={cliente.id} value={String(cliente.id)}>{cliente.name}</SelectItem>
+                          <SelectItem key={cliente.id} value={String(cliente.id)}>
+                            {cliente.name} {cliente.email && `(${cliente.email})`}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>

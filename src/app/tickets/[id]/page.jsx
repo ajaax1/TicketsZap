@@ -17,6 +17,7 @@ import { TicketsHeader } from "@/components/tickets-header"
 import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialog"
 import { LoadingSpinner } from "@/components/loading-spinner"
 import { TicketAttachments } from "@/components/ticket-attachments"
+import { TicketMessages } from "@/components/ticket-messages"
 import useAuth from "@/hooks/useAuth"
 import { usePermissions } from "@/hooks/usePermissions"
 
@@ -361,7 +362,9 @@ export default function EditarChamado() {
                         <SelectContent>
                           <SelectItem value="none">Nenhum</SelectItem>
                           {clientes.map((cliente) => (
-                            <SelectItem key={cliente.id} value={String(cliente.id)}>{cliente.name}</SelectItem>
+                            <SelectItem key={cliente.id} value={String(cliente.id)}>
+                              {cliente.name} {cliente.email && `(${cliente.email})`}
+                            </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -400,6 +403,10 @@ export default function EditarChamado() {
 
         <div className="mt-6">
           <TicketAttachments ticketId={ticketId} />
+        </div>
+
+        <div className="mt-6">
+          <TicketMessages ticketId={ticketId} />
         </div>
       </div>
 

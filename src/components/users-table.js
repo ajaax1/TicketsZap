@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { MoreHorizontal, Edit, Trash2, Mail, Shield, HeadphonesIcon, UserCheck } from "lucide-react"
+import { MoreHorizontal, Edit, Trash2, Mail, Shield, HeadphonesIcon, UserCheck, User } from "lucide-react"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { deleteUser } from "@/services/users"
@@ -24,18 +24,21 @@ export function UsersTable({ users = [], onUserDelete }) {
     admin: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800",
     support: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800",
     assistant: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800",
+    cliente: "bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/20 dark:text-purple-300 dark:border-purple-800",
   }
 
   const roleLabels = {
     admin: "Administrador",
     support: "Suporte", 
     assistant: "Assistente",
+    cliente: "Cliente",
   }
 
   const roleIcons = {
     admin: <Shield className="h-4 w-4" />,
     support: <HeadphonesIcon className="h-4 w-4" />,
     assistant: <UserCheck className="h-4 w-4" />,
+    cliente: <User className="h-4 w-4" />,
   }
 
   function getInitials(name) {

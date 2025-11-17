@@ -36,6 +36,7 @@ export function usePermissions() {
   const canDeleteTickets = isAdmin || isSupport
   const canDeleteAttachments = isAdmin || isSupport || isAssistant
   const canAssignCliente = isAdmin || isSupport
+  const canSendInternalMessages = isAdmin || isSupport
 
   return {
     user,
@@ -51,6 +52,7 @@ export function usePermissions() {
     canDeleteTickets,
     canDeleteAttachments,
     canAssignCliente,
+    canSendInternalMessages,
     isHydrated
   }
 }

@@ -11,17 +11,17 @@ export async function getUsersAlphabetical() {
 }
 
 /**
- * Busca apenas usuários com role "cliente" em ordem alfabética
+ * Busca todos os clientes cadastrados no sistema
+ * Retorna array ordenado alfabeticamente por nome
  * Útil para seleção de cliente em tickets
+ * @returns {Promise<Array>} Array de clientes com id, name e email
  */
 export async function getClientesAlphabetical() {
   try {
-    const response = await api.get("/users-alphabetical", {
-      params: { role: "cliente" }
-    }); 
+    const response = await api.get("/clientes"); 
     return response.data;
   } catch (error) {
-    console.error("Erro ao buscar clientes em ordem alfabética:", error);
+    console.error("Erro ao buscar clientes:", error);
     throw error;
   }
 }

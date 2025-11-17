@@ -245,6 +245,7 @@ export default function EditarUsuario() {
                     <SelectItem value="admin">Administrador</SelectItem>
                     <SelectItem value="support">Suporte</SelectItem>
                     <SelectItem value="assistant">Assistente</SelectItem>
+                    <SelectItem value="cliente">Cliente</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
