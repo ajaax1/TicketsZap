@@ -9,8 +9,16 @@ export async function login(values) {
 
     const { token, user } = response.data;
     if (typeof window !== "undefined") {
+      // Determina se está em produção (HTTPS) ou desenvolvimento
+      const isProduction = window.location.protocol === 'https:';
+      
       // Salva o token no cookie
-      document.cookie = `token=${token}; path=/; secure; samesite=strict`;
+      // secure flag só em produção (HTTPS), senão não funciona em localhost
+      const cookieOptions = isProduction 
+        ? `token=${token}; path=/; secure; samesite=strict; max-age=86400` // 24 horas
+        : `token=${token}; path=/; samesite=strict; max-age=86400`; // 24 horas
+      
+      document.cookie = cookieOptions;
       
       // Salva os dados do usuário no localStorage
       localStorage.setItem('user', JSON.stringify(user));
@@ -24,8 +32,18 @@ export async function login(values) {
 
 
 function getToken() {
-  const match = document.cookie.match(/(^| )token=([^;]+)/);
-  return match ? match[2] : null;
+  if (typeof document === "undefined") return null;
+  
+  // Tenta múltiplas formas de ler o cookie para garantir compatibilidade
+  const cookies = document.cookie.split(';');
+  for (let cookie of cookies) {
+    const [name, value] = cookie.trim().split('=');
+    if (name === 'token' && value) {
+      return decodeURIComponent(value);
+    }
+  }
+  
+  return null;
 }
 
 export async function logout() {

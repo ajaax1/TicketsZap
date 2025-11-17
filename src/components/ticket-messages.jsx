@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -27,36 +27,99 @@ export function TicketMessages({ ticketId }) {
   const [selectedFiles, setSelectedFiles] = useState([])
   const messagesEndRef = useRef(null)
   const fileInputRef = useRef(null)
+  const lastMessageCountRef = useRef(0)
 
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }
+
+  // Função principal para carregar mensagens
+  const loadMessages = useCallback(async () => {
+    if (!ticketId) return
+    
+    try {
+      setLoading(true)
+      const data = await getTicketMessages(ticketId)
+      const newMessages = Array.isArray(data) ? data : []
+      setMessages(newMessages)
+      lastMessageCountRef.current = newMessages.length
+    } catch (error) {
+      console.error("Erro ao carregar mensagens:", error)
+      const errorMessage = error?.response?.data?.message || "Erro ao carregar mensagens"
+      toast.error(errorMessage)
+      setMessages([])
+      lastMessageCountRef.current = 0
+    } finally {
+      setLoading(false)
+    }
+  }, [ticketId])
+
+  // Carrega mensagens silenciosamente (sem mostrar loading) - usado no polling
+  const loadMessagesSilently = useCallback(async () => {
+    if (!ticketId) return
+    
+    try {
+      const data = await getTicketMessages(ticketId)
+      const newMessages = Array.isArray(data) ? data : []
+      
+      // Só atualiza se houver novas mensagens (compara quantidade)
+      if (newMessages.length !== lastMessageCountRef.current) {
+        setMessages(newMessages)
+        lastMessageCountRef.current = newMessages.length
+        
+        // Se houver novas mensagens, faz scroll suave para a última
+        setTimeout(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+        }, 100)
+      }
+    } catch (error) {
+      // Silenciosamente ignora erros no polling
+      console.error("Erro ao atualizar mensagens (polling):", error)
+    }
+  }, [ticketId])
+
+  // Carrega mensagens quando o ticketId muda
   useEffect(() => {
     if (ticketId) {
       loadMessages()
     }
-  }, [ticketId])
+  }, [ticketId, loadMessages])
+
+  // Polling automático para verificar novas mensagens a cada 10 segundos
+  useEffect(() => {
+    if (!ticketId) return
+
+    const interval = setInterval(() => {
+      // Recarrega mensagens silenciosamente (sem mostrar loading)
+      loadMessagesSilently()
+    }, 10000) // 10 segundos
+
+    return () => clearInterval(interval)
+  }, [ticketId, loadMessagesSilently])
+
+  // Escuta eventos de atualização de mensagens (disparados por notificações)
+  useEffect(() => {
+    if (!ticketId) return
+
+    const handleRefreshMessages = (event) => {
+      const eventTicketId = event.detail?.ticketId
+      // Se o evento for para este ticket ou para todos, recarrega
+      if (!eventTicketId || String(eventTicketId) === String(ticketId)) {
+        loadMessages()
+      }
+    }
+
+    window.addEventListener('refresh-ticket-messages', handleRefreshMessages)
+    return () => {
+      window.removeEventListener('refresh-ticket-messages', handleRefreshMessages)
+    }
+  }, [ticketId, loadMessages])
 
   // Auto-scroll para a última mensagem quando novas mensagens são carregadas
   useEffect(() => {
     scrollToBottom()
   }, [messages])
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }
-
-  const loadMessages = async () => {
-    try {
-      setLoading(true)
-      const data = await getTicketMessages(ticketId)
-      setMessages(Array.isArray(data) ? data : [])
-    } catch (error) {
-      console.error("Erro ao carregar mensagens:", error)
-      const errorMessage = error?.response?.data?.message || "Erro ao carregar mensagens"
-      toast.error(errorMessage)
-      setMessages([])
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleFileSelect = (e) => {
     const files = Array.from(e.target.files)

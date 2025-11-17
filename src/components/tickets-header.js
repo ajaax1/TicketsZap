@@ -45,12 +45,12 @@ export function TicketsHeader() {
       .slice(0, 2)
   }
   return (
-    <header className="border-b border-border bg-card">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 items-center justify-between">
-          <div className="flex items-center gap-8">
-            <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-md bg-foreground">
+    <header className="border-b border-border bg-card" suppressHydrationWarning>
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8" suppressHydrationWarning>
+        <div className="flex h-16 items-center justify-between" suppressHydrationWarning>
+          <div className="flex items-center gap-8" suppressHydrationWarning>
+            <div className="flex items-center gap-3" suppressHydrationWarning>
+              <div className="flex h-8 w-8 items-center justify-center rounded-md bg-foreground" suppressHydrationWarning>
                 <span className="text-lg font-bold text-background">S</span>
               </div>
               <h1 className="text-xl font-semibold text-foreground">Suporte</h1>
@@ -88,7 +88,7 @@ export function TicketsHeader() {
               </Link>
             </nav>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3" suppressHydrationWarning>
             <NotificationBell />
             <Button variant="outline" size="icon" className="cursor-pointer">
               <Settings className="h-4 w-4" />

@@ -211,10 +211,10 @@ export default function EditarChamado() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background" suppressHydrationWarning>
       <TicketsHeader />
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mb-6">
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8" suppressHydrationWarning>
+        <div className="mb-6" suppressHydrationWarning>
           <Link href="/">
             <Button variant="ghost" size="sm" className="cursor-pointer">
               <ArrowLeft className="mr-2 h-4 w-4" />
@@ -401,11 +401,11 @@ export default function EditarChamado() {
           </CardContent>
         </Card>
 
-        <div className="mt-6">
+        <div className="mt-6" suppressHydrationWarning>
           <TicketAttachments ticketId={ticketId} />
         </div>
 
-        <div className="mt-6">
+        <div className="mt-6" suppressHydrationWarning>
           <TicketMessages ticketId={ticketId} />
         </div>
       </div>

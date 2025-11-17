@@ -1,9 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { Bell, Check, X } from "lucide-react";
 import { useNotifications } from "@/hooks/useNotifications";
+import { useMounted } from "@/hooks/useMounted";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,8 +14,9 @@ import { ptBR } from "date-fns/locale/pt-BR";
 
 export function NotificationBell() {
   const router = useRouter();
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const mounted = useMounted();
   const {
     notifications = [],
     unreadCount = 0,
@@ -23,11 +25,6 @@ export function NotificationBell() {
     markAllAsRead = () => {},
     deleteNotification = () => {},
   } = useNotifications();
-
-  // Garantir que só renderiza após montagem no cliente
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   // Debug: log quando o componente renderiza (apenas no cliente)
   useEffect(() => {
@@ -46,10 +43,26 @@ export function NotificationBell() {
       markAsRead(notification.id);
     }
 
-    // Navegar para o ticket
+    // Navegar para o ticket ou atualizar se já estiver na página
     const ticketId = notification.data?.ticket_id;
     if (ticketId) {
-      router.push(`/tickets/${ticketId}`);
+      const ticketPath = `/tickets/${ticketId}`;
+      
+      // Se já estiver na página do ticket, força atualização das mensagens
+      if (pathname === ticketPath) {
+        // Dispara evento customizado para atualizar mensagens
+        const refreshEvent = new CustomEvent('refresh-ticket-messages', {
+          detail: { ticketId: Number(ticketId) }
+        });
+        window.dispatchEvent(refreshEvent);
+        
+        // Também atualiza a página completa para garantir
+        router.refresh();
+      } else {
+        // Se não estiver, navega para a página do ticket
+        router.push(ticketPath);
+      }
+      
       setOpen(false);
     }
   };
@@ -64,6 +77,21 @@ export function NotificationBell() {
     await markAllAsRead();
   };
 
+  // Não renderiza até estar montado no cliente (evita problemas de hidratação)
+  if (!mounted) {
+    return (
+      <Button
+        variant="outline"
+        size="icon"
+        className="relative cursor-pointer"
+        aria-label="Notificações"
+        disabled
+      >
+        <Bell className="h-4 w-4" />
+      </Button>
+    );
+  }
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -72,26 +100,28 @@ export function NotificationBell() {
           size="icon"
           className="relative cursor-pointer"
           aria-label="Notificações"
+          suppressHydrationWarning
         >
           <Bell className="h-4 w-4" />
-          {mounted && unreadCount > 0 && (
+          {unreadCount > 0 && (
             <Badge
               variant="destructive"
               className="absolute -top-1 -right-1 h-4 w-4 flex items-center justify-center p-0 text-xs"
+              suppressHydrationWarning
             >
               {unreadCount > 9 ? "9+" : unreadCount}
             </Badge>
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-0" align="end">
+      <PopoverContent className="w-80 p-0" align="end" suppressHydrationWarning>
         <div className="flex flex-col">
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b">
+          <div className="flex items-center justify-between p-4 border-b" suppressHydrationWarning>
             <div className="flex items-center gap-2">
               <h3 className="font-semibold text-sm">Notificações</h3>
               {!loading && (
-                <span className="text-xs text-muted-foreground">
+                <span className="text-xs text-muted-foreground" suppressHydrationWarning>
                   ({notifications.length})
                 </span>
               )}
@@ -103,6 +133,7 @@ export function NotificationBell() {
                   size="sm"
                   className="h-7 text-xs"
                   onClick={handleMarkAllAsRead}
+                  suppressHydrationWarning
                 >
                   <Check className="h-3 w-3 mr-1" />
                   Marcar todas
@@ -113,6 +144,7 @@ export function NotificationBell() {
                 size="icon"
                 className="h-7 w-7"
                 onClick={() => setOpen(false)}
+                suppressHydrationWarning
               >
                 <X className="h-4 w-4" />
               </Button>
