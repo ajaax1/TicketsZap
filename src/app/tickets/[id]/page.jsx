@@ -9,8 +9,12 @@ import { Label } from "@/components/ui/label"
 import { RichTextEditor } from "@/components/ui/rich-text-editor"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowLeft, Save, Trash2, MessageSquare, ChevronDown, Clock } from "lucide-react"
+import { ArrowLeft, Save, Trash2, MessageSquare, ChevronDown, Clock, Calendar as CalendarIcon } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { format } from "date-fns"
+import { ptBR } from "date-fns/locale"
 import { 
   validateResolvidoEm,
   formatarTempoCurto,
@@ -45,9 +49,12 @@ export default function EditarChamado() {
     priority: "",
     user_id: "",
     cliente_id: "",
-    resolvido_em: "",
+    prazo_resolucao: "",
+    origem: "",
   })
   const [showTempoResolucao, setShowTempoResolucao] = useState(false)
+  const [selectedDate, setSelectedDate] = useState(null)
+  const [selectedTime, setSelectedTime] = useState("")
   const [ticketData, setTicketData] = useState(null)
 
   const [errors, setErrors] = useState({})
@@ -142,7 +149,7 @@ export default function EditarChamado() {
 
         if (ticketData) {
           setTicketData(ticketData)
-          const hasResolvidoEm = !!ticketData.resolvido_em
+          const hasPrazoResolucao = !!ticketData.prazo_resolucao
           
           setFormData({
             title: ticketData.title || "",
@@ -153,10 +160,43 @@ export default function EditarChamado() {
             priority: denormalizePriorityFromApi(ticketData.priority || ""),
             user_id: ticketData.user_id ? String(ticketData.user_id) : "",
             cliente_id: ticketData.cliente_id ? String(ticketData.cliente_id) : "",
-            resolvido_em: ticketData.resolvido_em ? converterAPIParaDatetimeLocal(ticketData.resolvido_em) : "",
+            prazo_resolucao: ticketData.prazo_resolucao ? converterAPIParaDatetimeLocal(ticketData.prazo_resolucao) : "",
+            origem: ticketData.origem || "",
           })
           
-          setShowTempoResolucao(hasResolvidoEm)
+          // Inicializa data e hora do calendário se houver prazo_resolucao
+          if (ticketData.prazo_resolucao) {
+            // Extrai data e hora diretamente da string para evitar problemas de timezone
+            // Backend retorna: "2025-11-20T14:30:00.000000Z" ou "2025-11-20T14:30:00"
+            const dateStr = ticketData.prazo_resolucao
+            const dateMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})/)
+            
+            if (dateMatch) {
+              const [, year, month, day, hours, minutes] = dateMatch
+              // Cria a data usando UTC para evitar conversão de timezone
+              const date = new Date(Date.UTC(
+                parseInt(year),
+                parseInt(month) - 1, // mês é 0-indexed
+                parseInt(day),
+                parseInt(hours),
+                parseInt(minutes)
+              ))
+              setSelectedDate(date)
+              setSelectedTime(`${hours}:${minutes}`)
+            } else {
+              // Fallback: usa new Date() se o formato não for reconhecido
+              const date = new Date(ticketData.prazo_resolucao)
+              setSelectedDate(date)
+              const hours = String(date.getHours()).padStart(2, '0')
+              const minutes = String(date.getMinutes()).padStart(2, '0')
+              setSelectedTime(`${hours}:${minutes}`)
+            }
+          } else {
+            setSelectedDate(null)
+            setSelectedTime("")
+          }
+          
+          setShowTempoResolucao(hasPrazoResolucao)
         }
         setServerError("")
       } catch (e) {
@@ -203,10 +243,23 @@ export default function EditarChamado() {
     if (!formData.user_id) newErrors.user_id = "Responsável é obrigatório"
     
     // Valida tempo de resolução se estiver preenchido
-    if (showTempoResolucao && formData.resolvido_em) {
-      const validation = validateResolvidoEm(formData.resolvido_em, ticketData?.created_at)
-      if (!validation.valid) {
-        newErrors.resolvido_em = validation.error
+    if (showTempoResolucao) {
+      if (!selectedDate) {
+        newErrors.prazo_resolucao = "Data é obrigatória"
+      } else if (!selectedTime) {
+        newErrors.prazo_resolucao = "Horário é obrigatório"
+      } else {
+        // Combina data e hora no formato datetime-local
+        // Usa getFullYear, getMonth, getDate para evitar problemas de timezone
+        const year = selectedDate.getFullYear()
+        const month = String(selectedDate.getMonth() + 1).padStart(2, '0')
+        const day = String(selectedDate.getDate()).padStart(2, '0')
+        const dateStr = `${year}-${month}-${day}`
+        const datetimeLocal = `${dateStr}T${selectedTime}`
+        const validation = validateResolvidoEm(datetimeLocal, ticketData?.created_at)
+        if (!validation.valid) {
+          newErrors.prazo_resolucao = validation.error
+        }
       }
     }
     
@@ -237,13 +290,27 @@ export default function EditarChamado() {
         payload.cliente_id = null
       }
       
+      // Origem é opcional
+      if (formData.origem && formData.origem !== "none") {
+        payload.origem = formData.origem
+      } else if (formData.origem === "" || formData.origem === "none") {
+        payload.origem = null
+      }
+      
       // Tempo de resolução é opcional - apenas data e horário
-      if (showTempoResolucao && formData.resolvido_em && formData.resolvido_em !== '') {
-        // Converte datetime-local para formato da API
-        payload.resolvido_em = converterDatetimeLocalParaAPI(formData.resolvido_em)
+      if (showTempoResolucao && selectedDate && selectedTime) {
+        // Combina data e hora no formato datetime-local
+        // Usa getFullYear, getMonth, getDate para evitar problemas de timezone
+        const year = selectedDate.getFullYear()
+        const month = String(selectedDate.getMonth() + 1).padStart(2, '0')
+        const day = String(selectedDate.getDate()).padStart(2, '0')
+        const dateStr = `${year}-${month}-${day}`
+        const datetimeLocal = `${dateStr}T${selectedTime}`
+        // Converte datetime-local para formato da API (adiciona :00)
+        payload.prazo_resolucao = converterDatetimeLocalParaAPI(datetimeLocal)
       } else {
         // Se o checkbox não está marcado ou campo está vazio, envia null
-        payload.resolvido_em = null
+        payload.prazo_resolucao = null
       }
       
       await updateTicket(ticketId, payload)
@@ -356,42 +423,29 @@ export default function EditarChamado() {
                       <Input value={users.find(u => String(u.id) === formData.user_id)?.name || ""} disabled readOnly />
                     </div>
                   </div>
-                  {/* Exibir data/hora de resolução se disponível */}
-                  {ticketData?.resolvido_em && (
+                  {/* Exibir prazo de resolução se disponível */}
+                  {ticketData?.prazo_resolucao && (
                     <div className="space-y-2">
                       <Label className="flex items-center gap-2">
                         <Clock className="h-4 w-4" />
-                        Resolvido em
+                        Prazo de Resolução
                       </Label>
                       <div className="flex items-center gap-2">
                         <Input 
-                          value={formatarDataHora(ticketData.resolvido_em)} 
+                          value={formatarDataHora(ticketData.prazo_resolucao)} 
                           disabled 
                           readOnly 
                           className="flex-1"
                         />
-                        <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 px-2 py-1 rounded">
-                          Data/Hora Manual
+                        <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 px-2 py-1 rounded">
+                          Prazo Definido
                         </span>
                       </div>
-                      {(() => {
-                        if (ticketData.created_at) {
-                          const criado = new Date(ticketData.created_at)
-                          const resolvido = new Date(ticketData.resolvido_em)
-                          const minutos = Math.floor((resolvido - criado) / (1000 * 60))
-                          return (
-                            <p className="text-xs text-muted-foreground">
-                              Tempo calculado: {formatarTempoCurto(minutos)}
-                            </p>
-                          )
-                        }
-                        return null
-                      })()}
                     </div>
                   )}
 
-                  {/* Se não tiver resolvido_em e estiver resolvido, mostrar cálculo automático */}
-                  {!ticketData?.resolvido_em && 
+                  {/* Se não tiver prazo_resolucao e estiver resolvido, mostrar cálculo automático */}
+                  {!ticketData?.prazo_resolucao && 
                    ticketData?.status === 'resolvido' && 
                    ticketData?.created_at && 
                    ticketData?.updated_at && (
@@ -524,6 +578,26 @@ export default function EditarChamado() {
                   )}
                 </div>
 
+                <div className="space-y-2">
+                  <Label htmlFor="origem">Origem do Chamado</Label>
+                  <Select 
+                    value={formData.origem || "none"} 
+                    onValueChange={(value) => setFormData({ ...formData, origem: value === "none" ? "" : value })}
+                  >
+                    <SelectTrigger id="origem">
+                      <SelectValue placeholder="Selecione a origem (opcional)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Não especificado</SelectItem>
+                      <SelectItem value="formulario_web">Formulário Web</SelectItem>
+                      <SelectItem value="email">E-mail</SelectItem>
+                      <SelectItem value="api">API</SelectItem>
+                      <SelectItem value="tel_manual">Telefone/Manual</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-sm text-muted-foreground">Opcional - Como o chamado foi criado</p>
+                </div>
+
                 {/* Campo de Tempo de Resolução (Opcional) */}
                 <div className="space-y-2 border-t pt-4">
                   <div className="flex items-center gap-2">
@@ -533,31 +607,58 @@ export default function EditarChamado() {
                       onCheckedChange={(checked) => {
                         setShowTempoResolucao(checked)
                         if (!checked) {
-                          setFormData({ ...formData, tempo_resolucao: "" })
+                          setSelectedDate(null)
+                          setSelectedTime("")
                         }
                       }}
                     />
                     <Label htmlFor="show_tempo_resolucao" className="text-sm font-normal cursor-pointer flex items-center gap-2">
                       <Clock className="h-4 w-4" />
-                      Definir tempo de resolução manualmente
+                      Definir prazo para resolver o chamado
                     </Label>
                   </div>
                   
                   {showTempoResolucao && (
-                    <div className="ml-6 space-y-2">
-                      <Label htmlFor="resolvido_em">Data e Horário de Resolução</Label>
-                      <Input
-                        id="resolvido_em"
-                        type="datetime-local"
-                        value={formData.resolvido_em}
-                        onChange={(e) => setFormData({ ...formData, resolvido_em: e.target.value })}
-                        className={errors.resolvido_em ? "border-destructive" : ""}
-                      />
-                      {errors.resolvido_em && (
-                        <p className="text-sm text-destructive">{errors.resolvido_em}</p>
+                    <div className="ml-6 space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="prazo_resolucao_date">Prazo de Resolução</Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={`w-full justify-start text-left font-normal ${errors.prazo_resolucao ? "border-destructive" : ""}`}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {selectedDate ? format(selectedDate, "dd/MM/yyyy", { locale: ptBR }) : "Selecione a data"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={selectedDate}
+                              onSelect={setSelectedDate}
+                              locale={ptBR}
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="prazo_resolucao_time">Horário do Prazo</Label>
+                        <Input
+                          id="prazo_resolucao_time"
+                          type="time"
+                          value={selectedTime}
+                          onChange={(e) => setSelectedTime(e.target.value)}
+                          className={errors.prazo_resolucao ? "border-destructive" : ""}
+                        />
+                      </div>
+                      
+                      {errors.prazo_resolucao && (
+                        <p className="text-sm text-destructive">{errors.prazo_resolucao}</p>
                       )}
                       <p className="text-xs text-muted-foreground">
-                        O sistema calculará automaticamente o tempo entre criação e resolução
+                        Data e horário limite para resolver este chamado
                       </p>
                     </div>
                   )}

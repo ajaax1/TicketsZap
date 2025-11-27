@@ -8,8 +8,12 @@ import { Label } from "@/components/ui/label"
 import { RichTextEditor } from "@/components/ui/rich-text-editor"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowLeft, Save, Clock } from "lucide-react"
+import { ArrowLeft, Save, Clock, Calendar as CalendarIcon } from "lucide-react"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { format } from "date-fns"
+import { ptBR } from "date-fns/locale"
 import { 
   validateResolvidoEm,
   converterDatetimeLocalParaAPI,
@@ -35,9 +39,12 @@ export default function NovoChamado() {
     priority: "",
     user_id: "",
     cliente_id: "",
-    resolvido_em: "",
+    prazo_resolucao: "",
+    origem: "",
   })
   const [showTempoResolucao, setShowTempoResolucao] = useState(false)
+  const [selectedDate, setSelectedDate] = useState(null)
+  const [selectedTime, setSelectedTime] = useState("")
 
   const [errors, setErrors] = useState({})
   const [serverError, setServerError] = useState("")
@@ -103,10 +110,23 @@ export default function NovoChamado() {
     if (!formData.user_id) newErrors.user_id = "Responsável é obrigatório"
     
     // Valida tempo de resolução se estiver preenchido
-    if (showTempoResolucao && formData.resolvido_em) {
-      const validation = validateResolvidoEm(formData.resolvido_em, null)
-      if (!validation.valid) {
-        newErrors.resolvido_em = validation.error
+    if (showTempoResolucao) {
+      if (!selectedDate) {
+        newErrors.prazo_resolucao = "Data é obrigatória"
+      } else if (!selectedTime) {
+        newErrors.prazo_resolucao = "Horário é obrigatório"
+      } else {
+        // Combina data e hora no formato datetime-local
+        // Usa getFullYear, getMonth, getDate para evitar problemas de timezone
+        const year = selectedDate.getFullYear()
+        const month = String(selectedDate.getMonth() + 1).padStart(2, '0')
+        const day = String(selectedDate.getDate()).padStart(2, '0')
+        const dateStr = `${year}-${month}-${day}`
+        const datetimeLocal = `${dateStr}T${selectedTime}`
+        const validation = validateResolvidoEm(datetimeLocal, null)
+        if (!validation.valid) {
+          newErrors.prazo_resolucao = validation.error
+        }
       }
     }
     
@@ -134,10 +154,22 @@ export default function NovoChamado() {
         payload.cliente_id = Number(formData.cliente_id)
       }
       
+      // Origem é opcional
+      if (formData.origem && formData.origem !== "none") {
+        payload.origem = formData.origem
+      }
+      
       // Tempo de resolução é opcional - apenas data e horário
-      if (showTempoResolucao && formData.resolvido_em && formData.resolvido_em !== '') {
-        // Converte datetime-local para formato da API
-        payload.resolvido_em = converterDatetimeLocalParaAPI(formData.resolvido_em)
+      if (showTempoResolucao && selectedDate && selectedTime) {
+        // Combina data e hora no formato datetime-local
+        // Usa getFullYear, getMonth, getDate para evitar problemas de timezone
+        const year = selectedDate.getFullYear()
+        const month = String(selectedDate.getMonth() + 1).padStart(2, '0')
+        const day = String(selectedDate.getDate()).padStart(2, '0')
+        const dateStr = `${year}-${month}-${day}`
+        const datetimeLocal = `${dateStr}T${selectedTime}`
+        // Converte datetime-local para formato da API (adiciona :00)
+        payload.prazo_resolucao = converterDatetimeLocalParaAPI(datetimeLocal)
       }
       await createTicket(payload)
       toast.success("Chamado criado com sucesso!")
@@ -151,9 +183,11 @@ export default function NovoChamado() {
         priority: "",
         user_id: "",
         cliente_id: "",
-        resolvido_em: "",
+        prazo_resolucao: "",
       })
       setShowTempoResolucao(false)
+      setSelectedDate(null)
+      setSelectedTime("")
       setErrors({})
     } catch (e) {
       const apiMessage = e?.response?.data?.message || e?.message || "Erro ao criar chamado"
@@ -296,6 +330,26 @@ export default function NovoChamado() {
                 )}
               </div>
 
+              <div className="space-y-2">
+                <Label htmlFor="origem">Origem do Chamado</Label>
+                <Select 
+                  value={formData.origem || "none"} 
+                  onValueChange={(value) => setFormData({ ...formData, origem: value === "none" ? "" : value })}
+                >
+                  <SelectTrigger id="origem">
+                    <SelectValue placeholder="Selecione a origem (opcional)" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Não especificado</SelectItem>
+                    <SelectItem value="formulario_web">Formulário Web</SelectItem>
+                    <SelectItem value="email">E-mail</SelectItem>
+                    <SelectItem value="api">API</SelectItem>
+                    <SelectItem value="tel_manual">Telefone/Manual</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-muted-foreground">Opcional - Como o chamado foi criado</p>
+              </div>
+
               {/* Campo de Tempo de Resolução (Opcional) */}
               <div className="space-y-2 border-t pt-4">
                 <div className="flex items-center gap-2">
@@ -305,31 +359,58 @@ export default function NovoChamado() {
                     onCheckedChange={(checked) => {
                       setShowTempoResolucao(checked)
                       if (!checked) {
-                        setFormData({ ...formData, resolvido_em: "" })
+                        setSelectedDate(null)
+                        setSelectedTime("")
                       }
                     }}
                   />
                   <Label htmlFor="show_tempo_resolucao" className="text-sm font-normal cursor-pointer flex items-center gap-2">
                     <Clock className="h-4 w-4" />
-                    Definir data e horário de resolução manualmente
+                    Definir prazo para resolver o chamado
                   </Label>
                 </div>
                 
                 {showTempoResolucao && (
-                  <div className="ml-6 space-y-2">
-                    <Label htmlFor="resolvido_em">Data e Horário de Resolução</Label>
-                    <Input
-                      id="resolvido_em"
-                      type="datetime-local"
-                      value={formData.resolvido_em}
-                      onChange={(e) => setFormData({ ...formData, resolvido_em: e.target.value })}
-                      className={errors.resolvido_em ? "border-destructive" : ""}
-                    />
-                    {errors.resolvido_em && (
-                      <p className="text-sm text-destructive">{errors.resolvido_em}</p>
+                  <div className="ml-6 space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="prazo_resolucao_date">Prazo de Resolução</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className={`w-full justify-start text-left font-normal ${errors.prazo_resolucao ? "border-destructive" : ""}`}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {selectedDate ? format(selectedDate, "dd/MM/yyyy", { locale: ptBR }) : "Selecione a data"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={selectedDate}
+                            onSelect={setSelectedDate}
+                            locale={ptBR}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="prazo_resolucao_time">Horário do Prazo</Label>
+                      <Input
+                        id="prazo_resolucao_time"
+                        type="time"
+                        value={selectedTime}
+                        onChange={(e) => setSelectedTime(e.target.value)}
+                        className={errors.prazo_resolucao ? "border-destructive" : ""}
+                      />
+                    </div>
+                    
+                    {errors.prazo_resolucao && (
+                      <p className="text-sm text-destructive">{errors.prazo_resolucao}</p>
                     )}
                     <p className="text-xs text-muted-foreground">
-                      O sistema calculará automaticamente o tempo entre criação e resolução
+                      Data e horário limite para resolver este chamado
                     </p>
                   </div>
                 )}

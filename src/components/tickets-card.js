@@ -1,6 +1,6 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { Clock, MessageSquare, MoreHorizontal, Trash2 } from "lucide-react"
+import { Clock, MessageSquare, MoreHorizontal, Trash2, CheckCircle2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { format, formatDistanceToNow } from "date-fns"
@@ -78,6 +78,26 @@ export function TicketCard({ ticket, onDelete }) {
     return tmp.textContent || tmp.innerText || ""
   }
 
+  function isPrazoProximo(prazoResolucao, status) {
+    if (!prazoResolucao) return false
+    // Se já está resolvido ou finalizado, não precisa alertar
+    if (status === 'resolvido' || status === 'finalizado') return false
+    
+    try {
+      const prazo = new Date(prazoResolucao)
+      const agora = new Date()
+      const diffMs = prazo - agora
+      const diffDias = diffMs / (1000 * 60 * 60 * 24) // Converter para dias
+      
+      // Retorna true se falta 1 dia ou menos (e ainda não passou)
+      return diffDias <= 1 && diffDias >= 0
+    } catch {
+      return false
+    }
+  }
+
+  const prazoProximo = isPrazoProximo(ticket.prazo_resolucao, ticket.status)
+
   const handleDeleteClick = (e) => {
     e.preventDefault()
     e.stopPropagation()
@@ -106,7 +126,11 @@ export function TicketCard({ ticket, onDelete }) {
 
   return (
     <>
-    <a href={`/tickets/${ticket.id}`} className="block group rounded-lg border border-border bg-card p-4 transition-all hover:border-primary/50 hover:shadow-md">
+    <a href={`/tickets/${ticket.id}`} className={`block group rounded-lg border p-4 transition-all hover:shadow-md ${
+      prazoProximo 
+        ? 'border-red-500 bg-red-50 dark:bg-red-950/20 hover:border-red-600' 
+        : 'border-border bg-card hover:border-primary/50'
+    }`}>
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 space-y-3">
           <div className="flex items-start gap-3">
@@ -158,6 +182,17 @@ export function TicketCard({ ticket, onDelete }) {
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
                   <Paperclip className="h-3 w-3" />
                   <span>{ticket.attachments.length} anexo(s)</span>
+                </div>
+              )}
+              {ticket.prazo_resolucao && (
+                <div className={`flex items-center gap-1 text-xs ${
+                  prazoProximo 
+                    ? 'text-red-600 dark:text-red-400 font-semibold' 
+                    : 'text-blue-600 dark:text-blue-400'
+                }`}>
+                  <Clock className="h-3 w-3" />
+                  <span>Prazo: {formatDateTime(ticket.prazo_resolucao)}</span>
+                  {prazoProximo && <span className="ml-1">⚠️</span>}
                 </div>
               )}
               <div className="flex items-center gap-1 text-xs text-muted-foreground">

@@ -31,6 +31,10 @@ import {
 } from "lucide-react"
 import { formatarTempoCurto } from "@/utils/timeHelpers"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import dynamic from "next/dynamic"
+import ChartErrorBoundary from "@/components/charts/ChartErrorBoundary"
+import { AgentPerformanceChart } from "@/components/charts/AgentPerformanceChart"
+import { PriorityChart } from "@/components/charts/PriorityChart"
 
 export default function ReportsPage() {
   useAuth()
@@ -71,6 +75,14 @@ export default function ReportsPage() {
   const loadTickets = async () => {
     try {
       const data = await getTicketsStats(period)
+      console.log("📊 Dados de tickets carregados:", {
+        hasAgentProductivity: !!data?.agent_productivity,
+        agentProductivityLength: data?.agent_productivity?.length || 0,
+        agentProductivity: data?.agent_productivity,
+        hasByPriority: !!data?.by_priority,
+        byPriorityKeys: data?.by_priority ? Object.keys(data.by_priority) : [],
+        byPriority: data?.by_priority
+      })
       setTicketsData(data)
     } catch (error) {
       console.error("Erro ao carregar estatísticas de tickets:", error)
@@ -142,6 +154,28 @@ export default function ReportsPage() {
     }
   }, [isAdmin])
 
+  // Verifica se há parâmetro de tab na URL e faz scroll para seções
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    
+    const params = new URLSearchParams(window.location.search)
+    const tab = params.get('tab')
+    if (tab && ['dashboard', 'tickets', 'users', 'messages', 'attachments', 'trends'].includes(tab)) {
+      setActiveTab(tab)
+    }
+    
+    // Faz scroll para seção se houver hash na URL
+    const hash = window.location.hash
+    if (hash) {
+      setTimeout(() => {
+        const element = document.querySelector(hash)
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+        }
+      }, 300)
+    }
+  }, [])
+
   // Recarrega quando o período muda
   useEffect(() => {
     if (isAdmin && !loading) {
@@ -163,7 +197,7 @@ export default function ReportsPage() {
   // Aguarda hidratação antes de verificar permissões
   if (!isHydrated) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-background" suppressHydrationWarning>
         <TicketsHeader />
         <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
           <LoadingSpinner text="Verificando permissões..." />
@@ -189,7 +223,7 @@ export default function ReportsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background" suppressHydrationWarning>
       <TicketsHeader />
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="mb-6 flex items-center justify-between">
@@ -389,15 +423,85 @@ export default function ReportsPage() {
           </TabsContent>
 
           {/* Tickets */}
-          <TabsContent value="tickets" className="space-y-4">
+          <TabsContent value="tickets" className="space-y-6">
             {ticketsData && (
               <>
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Visão Geral de Tickets</CardTitle>
-                    <CardDescription>Período: {ticketsData.period}</CardDescription>
-                  </CardHeader>
-                  <CardContent>
+                {/* Resumo dos Gráficos Disponíveis */}
+                <div className="grid gap-4 md:grid-cols-3 mb-8">
+                  <Card className="border-blue-200 dark:border-blue-800 hover:shadow-md transition-shadow">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <TrendingUp className="h-4 w-4 text-blue-600" />
+                        Desempenho por Agente
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        Tickets atendidos, tempo de resposta e taxa de resolução por agente
+                      </p>
+                      <a 
+                        href="#agents" 
+                        className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium inline-flex items-center gap-1"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          if (typeof window !== 'undefined') {
+                            document.getElementById('agents')?.scrollIntoView({ behavior: 'smooth' })
+                          }
+                        }}
+                      >
+                        Ver gráfico <span>→</span>
+                      </a>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="border-yellow-200 dark:border-yellow-800 hover:shadow-md transition-shadow">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <AlertCircle className="h-4 w-4 text-yellow-600" />
+                        Prioridade dos Tickets
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        Distribuição de tickets por nível de prioridade (Baixa, Média, Alta)
+                      </p>
+                      <a 
+                        href="#priority" 
+                        className="text-xs text-yellow-600 dark:text-yellow-400 hover:underline font-medium inline-flex items-center gap-1"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          if (typeof window !== 'undefined') {
+                            document.getElementById('priority')?.scrollIntoView({ behavior: 'smooth' })
+                          }
+                        }}
+                      >
+                        Ver gráfico <span>→</span>
+                      </a>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="border-green-200 dark:border-green-800 hover:shadow-md transition-shadow">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-green-600" />
+                        Tempo de Resolução
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground">
+                        Métricas de tempo médio, mínimo e máximo de resolução
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                <div id="tickets" className="scroll-mt-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Visão Geral de Tickets</CardTitle>
+                      <CardDescription>Período: {ticketsData.period}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
                     <div className="grid gap-4 md:grid-cols-4">
                       <div>
                         <p className="text-sm text-muted-foreground">Total</p>
@@ -494,8 +598,56 @@ export default function ReportsPage() {
                         </CardContent>
                       </Card>
                     )}
+
+                    {/* Gráfico de Desempenho por Agente */}
+                    <div id="agents" className="scroll-mt-8 mb-8">
+                      {ticketsData.agent_productivity && 
+                       Array.isArray(ticketsData.agent_productivity) && 
+                       ticketsData.agent_productivity.length > 0 ? (
+                        <ChartErrorBoundary>
+                          <AgentPerformanceChart data={ticketsData.agent_productivity} />
+                        </ChartErrorBoundary>
+                      ) : (
+                        <Card>
+                          <CardHeader>
+                            <CardTitle>Desempenho por Agente</CardTitle>
+                            <CardDescription>Dados de produtividade dos atendentes</CardDescription>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="flex items-center justify-center h-64 text-muted-foreground">
+                              <p>Nenhum dado de agente disponível</p>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
+                    </div>
+
+                    {/* Gráfico de Prioridade dos Tickets */}
+                    <div id="priority" className="scroll-mt-8 mb-8">
+                      {ticketsData.by_priority && 
+                       typeof ticketsData.by_priority === 'object' &&
+                       ticketsData.by_priority !== null &&
+                       Object.keys(ticketsData.by_priority).length > 0 ? (
+                        <ChartErrorBoundary>
+                          <PriorityChart data={ticketsData.by_priority} />
+                        </ChartErrorBoundary>
+                      ) : (
+                        <Card>
+                          <CardHeader>
+                            <CardTitle>Prioridade dos Tickets</CardTitle>
+                            <CardDescription>Distribuição de tickets por prioridade</CardDescription>
+                          </CardHeader>
+                          <CardContent>
+                            <div className="flex items-center justify-center h-64 text-muted-foreground">
+                              <p>Nenhum dado de prioridade disponível</p>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )}
+                    </div>
                   </>
                 )}
+                </div>
               </>
             )}
           </TabsContent>
