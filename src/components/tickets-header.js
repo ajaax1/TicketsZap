@@ -77,7 +77,7 @@ export function TicketsHeader() {
                 Usuários
               </Link>
               <Link 
-                href="#" 
+                href="/reports" 
                 className={`text-sm font-medium transition-colors ${
                   isActive("/reports") 
                     ? "text-foreground" 

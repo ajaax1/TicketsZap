@@ -8,7 +8,14 @@ import { Label } from "@/components/ui/label"
 import { RichTextEditor } from "@/components/ui/rich-text-editor"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowLeft, Save } from "lucide-react"
+import { ArrowLeft, Save, Clock } from "lucide-react"
+import { Checkbox } from "@/components/ui/checkbox"
+import { 
+  validateResolvidoEm,
+  converterDatetimeLocalParaAPI,
+  converterAPIParaDatetimeLocal,
+  formatarDataHora
+} from "@/utils/timeHelpers"
 import { getUsersAlphabetical, getClientesAlphabetical } from "@/services/users"
 import { createTicket } from "@/services/tickets"
 import { toast } from "sonner"
@@ -28,7 +35,9 @@ export default function NovoChamado() {
     priority: "",
     user_id: "",
     cliente_id: "",
+    resolvido_em: "",
   })
+  const [showTempoResolucao, setShowTempoResolucao] = useState(false)
 
   const [errors, setErrors] = useState({})
   const [serverError, setServerError] = useState("")
@@ -92,6 +101,15 @@ export default function NovoChamado() {
     if (!formData.status) newErrors.status = "Status é obrigatório"
     if (!formData.priority) newErrors.priority = "Prioridade é obrigatória"
     if (!formData.user_id) newErrors.user_id = "Responsável é obrigatório"
+    
+    // Valida tempo de resolução se estiver preenchido
+    if (showTempoResolucao && formData.resolvido_em) {
+      const validation = validateResolvidoEm(formData.resolvido_em, null)
+      if (!validation.valid) {
+        newErrors.resolvido_em = validation.error
+      }
+    }
+    
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -115,6 +133,12 @@ export default function NovoChamado() {
       if (canAssignCliente && formData.cliente_id) {
         payload.cliente_id = Number(formData.cliente_id)
       }
+      
+      // Tempo de resolução é opcional - apenas data e horário
+      if (showTempoResolucao && formData.resolvido_em && formData.resolvido_em !== '') {
+        // Converte datetime-local para formato da API
+        payload.resolvido_em = converterDatetimeLocalParaAPI(formData.resolvido_em)
+      }
       await createTicket(payload)
       toast.success("Chamado criado com sucesso!")
       setServerError("")
@@ -127,7 +151,9 @@ export default function NovoChamado() {
         priority: "",
         user_id: "",
         cliente_id: "",
+        resolvido_em: "",
       })
+      setShowTempoResolucao(false)
       setErrors({})
     } catch (e) {
       const apiMessage = e?.response?.data?.message || e?.message || "Erro ao criar chamado"
@@ -266,6 +292,45 @@ export default function NovoChamado() {
                       </SelectContent>
                     </Select>
                     <p className="text-sm text-muted-foreground">Opcional - Vincula o chamado a um usuário cliente</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Campo de Tempo de Resolução (Opcional) */}
+              <div className="space-y-2 border-t pt-4">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="show_tempo_resolucao"
+                    checked={showTempoResolucao}
+                    onCheckedChange={(checked) => {
+                      setShowTempoResolucao(checked)
+                      if (!checked) {
+                        setFormData({ ...formData, resolvido_em: "" })
+                      }
+                    }}
+                  />
+                  <Label htmlFor="show_tempo_resolucao" className="text-sm font-normal cursor-pointer flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    Definir data e horário de resolução manualmente
+                  </Label>
+                </div>
+                
+                {showTempoResolucao && (
+                  <div className="ml-6 space-y-2">
+                    <Label htmlFor="resolvido_em">Data e Horário de Resolução</Label>
+                    <Input
+                      id="resolvido_em"
+                      type="datetime-local"
+                      value={formData.resolvido_em}
+                      onChange={(e) => setFormData({ ...formData, resolvido_em: e.target.value })}
+                      className={errors.resolvido_em ? "border-destructive" : ""}
+                    />
+                    {errors.resolvido_em && (
+                      <p className="text-sm text-destructive">{errors.resolvido_em}</p>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      O sistema calculará automaticamente o tempo entre criação e resolução
+                    </p>
                   </div>
                 )}
               </div>

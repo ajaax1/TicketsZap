@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Checkbox } from "@/components/ui/checkbox"
 import { getTicketMessages, sendTicketMessage, downloadMessageAttachment } from "@/services/messages"
 import { toast } from "sonner"
-import { Send, Lock, MessageSquare, Loader2, Paperclip, X, Download, Eye, File } from "lucide-react"
+import { Send, Lock, MessageSquare, Loader2, Paperclip, X, Download, Eye, File, ChevronDown } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { ptBR } from "date-fns/locale/pt-BR"
 import { format } from "date-fns"
@@ -26,12 +26,37 @@ export function TicketMessages({ ticketId }) {
   const [isInternal, setIsInternal] = useState(false)
   const [selectedFiles, setSelectedFiles] = useState([])
   const messagesEndRef = useRef(null)
+  const messagesContainerRef = useRef(null)
   const fileInputRef = useRef(null)
   const lastMessageCountRef = useRef(0)
+  const [hasNewMessages, setHasNewMessages] = useState(false)
+  const [isAtBottom, setIsAtBottom] = useState(true)
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+    setHasNewMessages(false)
   }
+
+  // Verifica se o usuário está no final do scroll
+  const checkIfAtBottom = useCallback(() => {
+    const container = messagesContainerRef.current
+    if (!container) return false
+    
+    const threshold = 100 // 100px de margem para considerar "no final"
+    const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight <= threshold
+    return isAtBottom
+  }, [])
+
+  // Handler para scroll
+  const handleScroll = useCallback(() => {
+    const atBottom = checkIfAtBottom()
+    setIsAtBottom(atBottom)
+    
+    // Se o usuário rolar até o final, remove a notificação
+    if (atBottom) {
+      setHasNewMessages(false)
+    }
+  }, [checkIfAtBottom])
 
   // Função principal para carregar mensagens
   const loadMessages = useCallback(async () => {
@@ -43,6 +68,13 @@ export function TicketMessages({ ticketId }) {
       const newMessages = Array.isArray(data) ? data : []
       setMessages(newMessages)
       lastMessageCountRef.current = newMessages.length
+      setHasNewMessages(false)
+      
+      // Faz scroll apenas na primeira carga
+      setTimeout(() => {
+        scrollToBottom()
+        setIsAtBottom(true)
+      }, 100)
     } catch (error) {
       console.error("Erro ao carregar mensagens:", error)
       const errorMessage = error?.response?.data?.message || "Erro ao carregar mensagens"
@@ -64,13 +96,37 @@ export function TicketMessages({ ticketId }) {
       
       // Só atualiza se houver novas mensagens (compara quantidade)
       if (newMessages.length !== lastMessageCountRef.current) {
+        const previousCount = lastMessageCountRef.current
+        const newCount = newMessages.length
+        const newMessagesCount = newCount - previousCount
+        
+        // Pega as mensagens novas (as últimas que foram adicionadas)
+        const newMessagesAdded = newMessages.slice(previousCount)
+        
+        // Verifica se alguma das mensagens novas é de um administrador
+        const isFromAdmin = newMessagesAdded.some(msg => msg.user?.role === 'admin')
+        
+        // Verifica se TODAS as mensagens novas são internas (se todas forem, cliente não deve ver)
+        const allMessagesAreInternal = newMessagesAdded.length > 0 && newMessagesAdded.every(msg => msg.is_internal === true)
+        
         setMessages(newMessages)
         lastMessageCountRef.current = newMessages.length
         
-        // Se houver novas mensagens, faz scroll suave para a última
-        setTimeout(() => {
-          messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-        }, 100)
+        // NUNCA faz scroll automático quando novas mensagens chegam via polling
+        // Sempre mostra o botão de notificação quando há novas mensagens
+        setHasNewMessages(true)
+        
+        // Dispara evento para notificar a página do ticket e a lista de tickets
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('new-ticket-message', {
+            detail: { 
+              ticketId,
+              newMessagesCount: newMessagesCount > 0 ? newMessagesCount : 1,
+              isFromAdmin: isFromAdmin || false,
+              isInternal: allMessagesAreInternal || false
+            }
+          }))
+        }
       }
     } catch (error) {
       // Silenciosamente ignora erros no polling
@@ -103,9 +159,10 @@ export function TicketMessages({ ticketId }) {
 
     const handleRefreshMessages = (event) => {
       const eventTicketId = event.detail?.ticketId
-      // Se o evento for para este ticket ou para todos, recarrega
+      // Se o evento for para este ticket ou para todos, recarrega silenciosamente
+      // (sem fazer scroll automático, apenas mostra notificação se necessário)
       if (!eventTicketId || String(eventTicketId) === String(ticketId)) {
-        loadMessages()
+        loadMessagesSilently()
       }
     }
 
@@ -113,12 +170,44 @@ export function TicketMessages({ ticketId }) {
     return () => {
       window.removeEventListener('refresh-ticket-messages', handleRefreshMessages)
     }
-  }, [ticketId, loadMessages])
+  }, [ticketId, loadMessagesSilently])
 
-  // Auto-scroll para a última mensagem quando novas mensagens são carregadas
+  // Escuta evento para fazer scroll até as mensagens (disparado pela notificação fixa)
   useEffect(() => {
-    scrollToBottom()
-  }, [messages])
+    if (!ticketId) return
+
+    const handleScrollToMessages = (event) => {
+      const eventTicketId = event.detail?.ticketId
+      // Se o evento for para este ticket ou para todos, faz scroll
+      if (!eventTicketId || String(eventTicketId) === String(ticketId)) {
+        setTimeout(() => {
+          scrollToBottom()
+          setIsAtBottom(true)
+          setHasNewMessages(false)
+        }, 100)
+      }
+    }
+
+    window.addEventListener('scroll-to-messages', handleScrollToMessages)
+    return () => {
+      window.removeEventListener('scroll-to-messages', handleScrollToMessages)
+    }
+  }, [ticketId])
+
+  // Listener de scroll para detectar quando o usuário está no final
+  useEffect(() => {
+    const container = messagesContainerRef.current
+    if (!container) return
+
+    container.addEventListener('scroll', handleScroll)
+    
+    // Verifica a posição inicial
+    handleScroll()
+
+    return () => {
+      container.removeEventListener('scroll', handleScroll)
+    }
+  }, [handleScroll])
 
 
   const handleFileSelect = (e) => {
@@ -204,12 +293,22 @@ export function TicketMessages({ ticketId }) {
       }
       
       // Adiciona a nova mensagem à lista
-      setMessages((prev) => [...prev, newMessage])
+      setMessages((prev) => {
+        lastMessageCountRef.current = prev.length + 1
+        return [...prev, newMessage]
+      })
       
       // Limpa o formulário
       setMessageText("")
       setIsInternal(false)
       setSelectedFiles([])
+      
+      // Quando o usuário envia uma mensagem, sempre faz scroll para mostrar sua mensagem
+      setTimeout(() => {
+        scrollToBottom()
+        setIsAtBottom(true)
+        setHasNewMessages(false)
+      }, 100)
       
       toast.success("Mensagem enviada com sucesso!")
     } catch (error) {
@@ -306,7 +405,10 @@ export function TicketMessages({ ticketId }) {
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Lista de mensagens */}
-        <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
+        <div 
+          ref={messagesContainerRef}
+          className="space-y-4 max-h-[500px] overflow-y-auto pr-2 relative"
+        >
           {loading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />

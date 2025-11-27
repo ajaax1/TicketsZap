@@ -10,7 +10,8 @@ export function middleware(req) {
     '/users',
     '/users/new',
     '/tickets',
-    '/tickets/new'
+    '/tickets/new',
+    '/reports'
   ];
 
   // Rotas públicas (não precisam de autenticação)
@@ -50,6 +51,7 @@ export const config = {
     '/',
     '/users/:path*',
     '/tickets/:path*',
+    '/reports/:path*',
     '/login',
     '/forgot-password',
     '/reset-password'

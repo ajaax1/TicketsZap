@@ -8,10 +8,14 @@ import { TicketsList } from "@/components/tickets-list"
 import { TicketsStats } from "@/components/tickets-stats"
 import { getTickets } from "@/services/tickets"
 import { LoadingSpinner } from "@/components/loading-spinner"
+import { Button } from "@/components/ui/button"
+import { MessageSquare, ChevronDown } from "lucide-react"
 import useAuth from "@/hooks/useAuth"
+import { usePermissions } from "@/hooks/usePermissions"
 
 function TicketsPageContent() {
   useAuth() // Verifica autenticação
+  const { isCliente } = usePermissions()
   const searchParams = useSearchParams()
   const router = useRouter()
   const [currentPage, setCurrentPage] = useState(1)
@@ -22,6 +26,7 @@ function TicketsPageContent() {
   const [isNavigating, setIsNavigating] = useState(false)
   const [filters, setFilters] = useState({})
   const isUpdatingURL = useRef(false)
+  const [ticketsWithNewMessages, setTicketsWithNewMessages] = useState(new Map()) // Map<ticketId, quantidade>
 
   // Função para ler filtros da URL
   const getFiltersFromURL = () => {
@@ -81,7 +86,6 @@ function TicketsPageContent() {
   useEffect(() => {
     if (isUpdatingURL.current) {
       console.log('Skipping URL update - we are updating programmatically')
-      isUpdatingURL.current = false
       return
     }
     
@@ -108,7 +112,7 @@ function TicketsPageContent() {
   }, [currentPage, filters, fetchPage])
 
   const handlePageChange = useCallback((page) => {
-    console.log('TicketsPage handlePageChange called with page:', page, 'currentPage:', currentPage, 'isNavigating:', isNavigating)
+    console.log('TicketsPage handlePageChange called with page:', page, 'currentPage:', currentPage)
     
     // Validação básica
     if (!page || page < 1) {
@@ -122,17 +126,13 @@ function TicketsPageContent() {
       return
     }
     
-    // Evita múltiplas navegações simultâneas
-    if (isNavigating) {
-      console.log('Already navigating, skipping update')
-      return
-    }
-    
-    // Marca que estamos navegando
-    setIsNavigating(true)
+    // Marca que estamos atualizando programaticamente
     isUpdatingURL.current = true
     
-    // Atualiza URL primeiro para garantir sincronização
+    // Atualiza o estado imediatamente
+    setCurrentPage(page)
+    
+    // Atualiza URL com os novos parâmetros
     const params = new URLSearchParams()
     
     // Adiciona nova página
@@ -149,23 +149,14 @@ function TicketsPageContent() {
     const newURL = params.toString() ? `?${params.toString()}` : '/'
     console.log('TicketsPage updating URL to:', newURL)
     
-    try {
-      // Atualiza URL primeiro
-      router.replace(newURL, { scroll: false })
-      console.log('TicketsPage URL updated successfully')
-      
-      // Depois atualiza o estado
-      setCurrentPage(page)
-      console.log('TicketsPage state updated to:', page)
-      
-      // Reset navigation flag após um delay
-     
-    } catch (error) {
-      console.error('TicketsPage error updating URL:', error)
+    // Atualiza URL
+    router.replace(newURL, { scroll: false })
+    
+    // Reset flag após um delay
+    setTimeout(() => {
       isUpdatingURL.current = false
-      setIsNavigating(false)
-    }
-  }, [filters, router, currentPage, isNavigating])
+    }, 200)
+  }, [filters, router, currentPage])
 
   const handleApplyFilters = (newFilters) => {
     setFilters(newFilters)
@@ -175,7 +166,69 @@ function TicketsPageContent() {
 
   const handleTicketDelete = (deletedTicketId) => {
     setTickets(tickets.filter(ticket => ticket.id !== deletedTicketId))
+    // Remove o ticket do mapa de tickets com mensagens novas
+    setTicketsWithNewMessages(prev => {
+      const newMap = new Map(prev)
+      newMap.delete(deletedTicketId)
+      return newMap
+    })
   }
+
+  // Escuta eventos de novas mensagens em qualquer ticket
+  useEffect(() => {
+    const handleNewMessage = (event) => {
+      const eventTicketId = event.detail?.ticketId
+      const newMessagesCount = event.detail?.newMessagesCount || 1
+      const isInternal = event.detail?.isInternal || false
+      
+      // Se for cliente e a mensagem for interna, não conta
+      if (isCliente && isInternal) {
+        return
+      }
+      
+      if (eventTicketId) {
+        setTicketsWithNewMessages(prev => {
+          const newMap = new Map(prev)
+          const currentCount = newMap.get(eventTicketId) || 0
+          newMap.set(eventTicketId, currentCount + newMessagesCount)
+          return newMap
+        })
+      }
+    }
+
+    window.addEventListener('new-ticket-message', handleNewMessage)
+    return () => {
+      window.removeEventListener('new-ticket-message', handleNewMessage)
+    }
+  }, [isCliente])
+
+  // Função para limpar notificações quando o usuário visualiza um ticket
+  const handleViewTicket = (ticketId) => {
+    setTicketsWithNewMessages(prev => {
+      const newSet = new Set(prev)
+      newSet.delete(ticketId)
+      return newSet
+    })
+  }
+
+  // Escuta eventos de quando um ticket é visualizado (para limpar a notificação)
+  useEffect(() => {
+    const handleTicketViewed = (event) => {
+      const eventTicketId = event.detail?.ticketId
+      if (eventTicketId) {
+        setTicketsWithNewMessages(prev => {
+          const newMap = new Map(prev)
+          newMap.delete(eventTicketId)
+          return newMap
+        })
+      }
+    }
+
+    window.addEventListener('ticket-viewed', handleTicketViewed)
+    return () => {
+      window.removeEventListener('ticket-viewed', handleTicketViewed)
+    }
+  }, [])
 
   return (
     <div className="min-h-screen bg-background">
@@ -196,6 +249,31 @@ function TicketsPageContent() {
           <TicketsList tickets={tickets} paginationData={paginationData} onPageChange={handlePageChange} onTicketDelete={handleTicketDelete} loading={loading} />
         )}
       </main>
+
+      {/* Notificação fixa de mensagens novas */}
+      {(() => {
+        const totalNewMessages = Array.from(ticketsWithNewMessages.values()).reduce((sum, count) => sum + count, 0)
+        return totalNewMessages > 0 && (
+          <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-bottom-5">
+            <Button
+              onClick={() => {
+                // Rola até o topo da lista de tickets
+                window.scrollTo({ top: 0, behavior: 'smooth' })
+              }}
+              className="shadow-lg bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-3"
+              size="lg"
+            >
+              <MessageSquare className="mr-2 h-5 w-5" />
+              <span className="font-semibold">
+                {totalNewMessages === 1 
+                  ? "1 mensagem nova" 
+                  : `${totalNewMessages} mensagens novas`}
+              </span>
+              <ChevronDown className="ml-2 h-5 w-5 rotate-180" />
+            </Button>
+          </div>
+        )
+      })()}
     </div>
   )
 }
