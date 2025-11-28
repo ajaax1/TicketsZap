@@ -1,25 +1,39 @@
 "use client"
 
-import { useState, useEffect } from "react"
+/**
+ * Gráfico de Desempenho por Agente usando Recharts
+ * 
+ * Mostra múltiplas métricas em abas diferentes
+ */
+
+import { useEffect, useRef, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Users, Clock, CheckCircle2, TrendingUp } from "lucide-react"
-import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
+import { 
+  BarChart as RechartsBarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer 
+} from "recharts"
 
 export function AgentPerformanceChart({ data = [] }) {
-  const [mounted, setMounted] = useState(false)
+  const containerRef = useRef(null)
+  const [activeTab, setActiveTab] = useState("tickets")
 
+  // Sempre garantir que data é um array válido
+  const chartData = Array.isArray(data) ? data : []
+  
+  // Log para verificar quantos agentes estão sendo recebidos
   useEffect(() => {
-    setMounted(true)
-    console.log("📈 AgentPerformanceChart - Dados recebidos:", {
-      data,
-      isArray: Array.isArray(data),
-      length: data?.length || 0,
-      firstItem: data?.[0]
-    })
-  }, [data])
+    console.log(`📊 [AgentPerformanceChart] Recebidos ${chartData.length} agentes:`, chartData.map(a => a.user_name))
+  }, [chartData])
 
-  if (!mounted) {
+  // Se não tem dados, mostrar mensagem
+  if (chartData.length === 0) {
     return (
       <Card>
         <CardHeader>
@@ -31,37 +45,7 @@ export function AgentPerformanceChart({ data = [] }) {
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center h-64 text-muted-foreground">
-            Carregando gráficos...
-          </div>
-        </CardContent>
-      </Card>
-    )
-  }
-
-  if (!data || !Array.isArray(data) || data.length === 0) {
-    console.log("⚠️ AgentPerformanceChart - Sem dados válidos:", {
-      data,
-      isArray: Array.isArray(data),
-      length: data?.length
-    })
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            Desempenho por Agente
-          </CardTitle>
-          <CardDescription>Produtividade dos atendentes</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center h-64 text-muted-foreground">
-            <div className="text-center">
-              <p>Nenhum dado disponível</p>
-              <p className="text-xs mt-2">
-                Tipo: {typeof data}, É array: {Array.isArray(data) ? 'Sim' : 'Não'}, 
-                Tamanho: {data?.length || 0}
-              </p>
-            </div>
+            Nenhum dado disponível
           </div>
         </CardContent>
       </Card>
@@ -69,51 +53,109 @@ export function AgentPerformanceChart({ data = [] }) {
   }
 
   // Preparar dados para cada gráfico
-  const ticketsData = data.map(agent => ({
+  const ticketsData = chartData.map(agent => ({
     name: agent?.user_name || `Agente ${agent?.user_id || 'N/A'}`,
     tickets: agent?.tickets_assigned || agent?.tickets_received || 0
   }))
 
-  const responseTimeData = data.map(agent => ({
+  const responseTimeData = chartData.map(agent => ({
     name: agent?.user_name || `Agente ${agent?.user_id || 'N/A'}`,
     horas: agent?.average_response_time_hours || 0
   }))
 
-  const resolutionRateData = data.map(agent => ({
+  const resolutionRateData = chartData.map(agent => ({
     name: agent?.user_name || `Agente ${agent?.user_id || 'N/A'}`,
     taxa: agent?.resolution_rate || 0
   }))
 
-  const resolutionTimeData = data.map(agent => ({
+  const resolutionTimeData = chartData.map(agent => ({
     name: agent?.user_name || `Agente ${agent?.user_id || 'N/A'}`,
     horas: agent?.average_resolution_time_hours || 0
   }))
 
-  console.log("📊 AgentPerformanceChart - Dados processados:", {
-    ticketsData,
-    responseTimeData,
-    resolutionRateData,
-    resolutionTimeData
-  })
-  
-  console.log("🔍 AgentPerformanceChart - Estado:", {
-    mounted,
-    dataLength: data?.length,
-    ticketsDataLength: ticketsData?.length,
-    hasTicketsData: !!ticketsData && ticketsData.length > 0
-  })
+  // Componente de gráfico reutilizável
+  const ChartWrapper = ({ data, dataKey, title, description, color, formatter }) => {
+    const wrapperRef = useRef(null)
+
+    if (!data || data.length === 0) {
+      return (
+        <Card>
+          <CardHeader>
+            <CardTitle>{title}</CardTitle>
+            <CardDescription>{description}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-center h-64 text-muted-foreground">
+              Nenhum dado disponível
+            </div>
+          </CardContent>
+        </Card>
+      )
+    }
+
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>{title}</CardTitle>
+          <CardDescription>{description}</CardDescription>
+        </CardHeader>
+        <CardContent className="pt-6" style={{ minHeight: '450px' }}>
+          <div 
+            ref={wrapperRef}
+            style={{ width: '100%', height: '400px', minHeight: '400px' }}
+          >
+            <ResponsiveContainer width="100%" height="100%">
+              <RechartsBarChart 
+                data={data} 
+                margin={{ top: 20, right: 30, left: 20, bottom: 80 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+                <XAxis 
+                  dataKey="name" 
+                  angle={-45}
+                  textAnchor="end"
+                  height={100}
+                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                />
+                <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'hsl(var(--popover))',
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                    padding: '8px 12px'
+                  }}
+                  labelStyle={{ color: 'hsl(var(--foreground))', fontWeight: 600, marginBottom: '4px' }}
+                  itemStyle={{ color: 'hsl(var(--foreground))' }}
+                  formatter={formatter}
+                />
+                <Bar 
+                  dataKey={dataKey} 
+                  fill={color}
+                  radius={[8, 8, 0, 0]}
+                />
+              </RechartsBarChart>
+            </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
 
   return (
-    <Card className="w-full">
+    <Card className="w-full" ref={containerRef}>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Users className="h-5 w-5" />
           Desempenho por Agente
         </CardTitle>
-        <CardDescription>Produtividade e métricas dos atendentes</CardDescription>
+        <CardDescription>
+          Produtividade e métricas dos atendentes ({chartData.length} {chartData.length === 1 ? 'agente' : 'agentes'})
+        </CardDescription>
       </CardHeader>
-      <CardContent className="pt-6">
-        <Tabs defaultValue="tickets" className="w-full">
+      <CardContent className="pt-6 min-h-[500px]">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="tickets" className="flex items-center gap-2">
               <TrendingUp className="h-4 w-4" />
@@ -133,218 +175,47 @@ export function AgentPerformanceChart({ data = [] }) {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="tickets" className="mt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Tickets Atendidos por Agente</CardTitle>
-                <CardDescription>Quantidade de tickets atribuídos a cada agente</CardDescription>
-              </CardHeader>
-              <CardContent className="pt-6">
-                <div className="w-full" style={{ height: '400px' }}>
-                  {ticketsData && ticketsData.length > 0 ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <RechartsBarChart 
-                        data={ticketsData} 
-                        margin={{ top: 20, right: 30, left: 20, bottom: 80 }}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-                        <XAxis 
-                          dataKey="name" 
-                          angle={-45}
-                          textAnchor="end"
-                          height={100}
-                          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                          stroke="hsl(var(--border))"
-                        />
-                        <YAxis 
-                          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                          stroke="hsl(var(--border))"
-                        />
-                        <Tooltip 
-                          contentStyle={{ 
-                            backgroundColor: 'hsl(var(--popover))',
-                            border: '1px solid hsl(var(--border))',
-                            borderRadius: '8px',
-                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                            padding: '8px 12px'
-                          }}
-                          labelStyle={{ color: 'hsl(var(--foreground))', fontWeight: 600, marginBottom: '4px' }}
-                          itemStyle={{ color: 'hsl(var(--foreground))' }}
-                        />
-                        <Bar 
-                          dataKey="tickets" 
-                          fill="hsl(var(--primary))"
-                          radius={[8, 8, 0, 0]}
-                        />
-                      </RechartsBarChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <div className="flex items-center justify-center h-full text-muted-foreground">
-                      Nenhum dado disponível
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+          <TabsContent value="tickets" className="mt-4" style={{ minHeight: '500px' }}>
+            <ChartWrapper
+              data={ticketsData}
+              dataKey="tickets"
+              title="Tickets Atendidos por Agente"
+              description="Quantidade de tickets atribuídos a cada agente"
+              color="#3b82f6"
+            />
           </TabsContent>
 
-          <TabsContent value="response" className="mt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Tempo Médio de Resposta por Agente</CardTitle>
-                <CardDescription>Tempo médio até primeira resposta (em horas)</CardDescription>
-              </CardHeader>
-              <CardContent className="pt-6">
-                <div className="w-full" style={{ height: '400px' }}>
-                  {responseTimeData && responseTimeData.length > 0 ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <RechartsBarChart data={responseTimeData} margin={{ top: 20, right: 30, left: 20, bottom: 80 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-                        <XAxis 
-                          dataKey="name" 
-                          angle={-45}
-                          textAnchor="end"
-                          height={100}
-                          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                          stroke="hsl(var(--border))"
-                        />
-                        <YAxis 
-                          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                          stroke="hsl(var(--border))"
-                        />
-                        <Tooltip 
-                          contentStyle={{ 
-                            backgroundColor: 'hsl(var(--popover))',
-                            border: '1px solid hsl(var(--border))',
-                            borderRadius: '8px',
-                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                            padding: '8px 12px'
-                          }}
-                          labelStyle={{ color: 'hsl(var(--foreground))', fontWeight: 600, marginBottom: '4px' }}
-                          itemStyle={{ color: 'hsl(var(--foreground))' }}
-                          formatter={(value) => [`${value.toFixed(2)}h`, 'Tempo']}
-                        />
-                        <Bar 
-                          dataKey="horas" 
-                          fill="hsl(142, 71%, 45%)"
-                          radius={[8, 8, 0, 0]}
-                        />
-                      </RechartsBarChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <div className="flex items-center justify-center h-full text-muted-foreground">
-                      Nenhum dado disponível
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+          <TabsContent value="response" className="mt-4" style={{ minHeight: '500px' }}>
+            <ChartWrapper
+              data={responseTimeData}
+              dataKey="horas"
+              title="Tempo Médio de Resposta por Agente"
+              description="Tempo médio até primeira resposta (em horas)"
+              color="#22c55e"
+              formatter={(value) => [`${value.toFixed(2)}h`, 'Tempo']}
+            />
           </TabsContent>
 
-          <TabsContent value="resolution-rate" className="mt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Taxa de Resolução por Agente</CardTitle>
-                <CardDescription>Percentual de tickets resolvidos</CardDescription>
-              </CardHeader>
-              <CardContent className="pt-6">
-                <div className="w-full" style={{ height: '400px' }}>
-                  {resolutionRateData && resolutionRateData.length > 0 ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <RechartsBarChart data={resolutionRateData} margin={{ top: 20, right: 30, left: 20, bottom: 80 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-                        <XAxis 
-                          dataKey="name" 
-                          angle={-45}
-                          textAnchor="end"
-                          height={100}
-                          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                          stroke="hsl(var(--border))"
-                        />
-                        <YAxis 
-                          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                          stroke="hsl(var(--border))"
-                        />
-                        <Tooltip 
-                          contentStyle={{ 
-                            backgroundColor: 'hsl(var(--popover))',
-                            border: '1px solid hsl(var(--border))',
-                            borderRadius: '8px',
-                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                            padding: '8px 12px'
-                          }}
-                          labelStyle={{ color: 'hsl(var(--foreground))', fontWeight: 600, marginBottom: '4px' }}
-                          itemStyle={{ color: 'hsl(var(--foreground))' }}
-                          formatter={(value) => [`${value.toFixed(2)}%`, 'Taxa']}
-                        />
-                        <Bar 
-                          dataKey="taxa" 
-                          fill="hsl(262, 83%, 58%)"
-                          radius={[8, 8, 0, 0]}
-                        />
-                      </RechartsBarChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <div className="flex items-center justify-center h-full text-muted-foreground">
-                      Nenhum dado disponível
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+          <TabsContent value="resolution-rate" className="mt-4" style={{ minHeight: '500px' }}>
+            <ChartWrapper
+              data={resolutionRateData}
+              dataKey="taxa"
+              title="Taxa de Resolução por Agente"
+              description="Percentual de tickets resolvidos"
+              color="#8b5cf6"
+              formatter={(value) => [`${value.toFixed(2)}%`, 'Taxa']}
+            />
           </TabsContent>
 
-          <TabsContent value="resolution-time" className="mt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Tempo Médio de Resolução por Agente</CardTitle>
-                <CardDescription>Tempo médio até resolução completa (em horas)</CardDescription>
-              </CardHeader>
-              <CardContent className="pt-6">
-                <div className="w-full" style={{ height: '400px' }}>
-                  {resolutionTimeData && resolutionTimeData.length > 0 ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                      <RechartsBarChart data={resolutionTimeData} margin={{ top: 20, right: 30, left: 20, bottom: 80 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
-                        <XAxis 
-                          dataKey="name" 
-                          angle={-45}
-                          textAnchor="end"
-                          height={100}
-                          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                          stroke="hsl(var(--border))"
-                        />
-                        <YAxis 
-                          tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
-                          stroke="hsl(var(--border))"
-                        />
-                        <Tooltip 
-                          contentStyle={{ 
-                            backgroundColor: 'hsl(var(--popover))',
-                            border: '1px solid hsl(var(--border))',
-                            borderRadius: '8px',
-                            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                            padding: '8px 12px'
-                          }}
-                          labelStyle={{ color: 'hsl(var(--foreground))', fontWeight: 600, marginBottom: '4px' }}
-                          itemStyle={{ color: 'hsl(var(--foreground))' }}
-                          formatter={(value) => [`${value.toFixed(2)}h`, 'Tempo']}
-                        />
-                        <Bar 
-                          dataKey="horas" 
-                          fill="hsl(24, 95%, 53%)"
-                          radius={[8, 8, 0, 0]}
-                        />
-                      </RechartsBarChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <div className="flex items-center justify-center h-full text-muted-foreground">
-                      Nenhum dado disponível
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+          <TabsContent value="resolution-time" className="mt-4" style={{ minHeight: '500px' }}>
+            <ChartWrapper
+              data={resolutionTimeData}
+              dataKey="horas"
+              title="Tempo Médio de Resolução por Agente"
+              description="Tempo médio até resolução completa (em horas)"
+              color="#f97316"
+              formatter={(value) => [`${value.toFixed(2)}h`, 'Tempo']}
+            />
           </TabsContent>
         </Tabs>
       </CardContent>

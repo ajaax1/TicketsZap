@@ -10,9 +10,7 @@ import {
   getDashboardStats, 
   getTicketsStats, 
   getUsersStats, 
-  getMessagesStats, 
-  getAttachmentsStats, 
-  getTrendsStats 
+  getMessagesStats
 } from "@/services/statistics"
 import { toast } from "sonner"
 import useAuth from "@/hooks/useAuth"
@@ -21,7 +19,6 @@ import {
   BarChart3, 
   Users, 
   MessageSquare, 
-  Paperclip, 
   TrendingUp, 
   Calendar,
   Ticket,
@@ -41,7 +38,6 @@ export default function ReportsPage() {
   const { isAdmin, isHydrated } = usePermissions()
   const [loading, setLoading] = useState(true)
   const [period, setPeriod] = useState('month')
-  const [days, setDays] = useState(30)
   const [activeTab, setActiveTab] = useState('dashboard')
 
   // Estados para cada tipo de estatística
@@ -49,8 +45,6 @@ export default function ReportsPage() {
   const [ticketsData, setTicketsData] = useState(null)
   const [usersData, setUsersData] = useState(null)
   const [messagesData, setMessagesData] = useState(null)
-  const [attachmentsData, setAttachmentsData] = useState(null)
-  const [trendsData, setTrendsData] = useState(null)
 
   // Verifica se é admin (apenas após hidratação)
   useEffect(() => {
@@ -63,10 +57,12 @@ export default function ReportsPage() {
   // Carrega dados do dashboard
   const loadDashboard = async () => {
     try {
+      console.log("📊 [API] GET /admin/statistics/dashboard?period=" + period)
       const data = await getDashboardStats(period)
+      console.log("✅ [API] Dashboard retornado:", data)
       setDashboardData(data)
     } catch (error) {
-      console.error("Erro ao carregar dashboard:", error)
+      console.error("❌ [API] Erro ao carregar dashboard:", error)
       toast.error("Erro ao carregar estatísticas do dashboard")
     }
   }
@@ -74,18 +70,12 @@ export default function ReportsPage() {
   // Carrega dados de tickets
   const loadTickets = async () => {
     try {
+      console.log("📊 [API] GET /admin/statistics/tickets?period=" + period)
       const data = await getTicketsStats(period)
-      console.log("📊 Dados de tickets carregados:", {
-        hasAgentProductivity: !!data?.agent_productivity,
-        agentProductivityLength: data?.agent_productivity?.length || 0,
-        agentProductivity: data?.agent_productivity,
-        hasByPriority: !!data?.by_priority,
-        byPriorityKeys: data?.by_priority ? Object.keys(data.by_priority) : [],
-        byPriority: data?.by_priority
-      })
+      console.log("✅ [API] Tickets retornado:", data)
       setTicketsData(data)
     } catch (error) {
-      console.error("Erro ao carregar estatísticas de tickets:", error)
+      console.error("❌ [API] Erro ao carregar estatísticas de tickets:", error)
       toast.error("Erro ao carregar estatísticas de tickets")
     }
   }
@@ -93,10 +83,12 @@ export default function ReportsPage() {
   // Carrega dados de usuários
   const loadUsers = async () => {
     try {
+      console.log("📊 [API] GET /admin/statistics/users?period=" + period)
       const data = await getUsersStats(period)
+      console.log("✅ [API] Users retornado:", data)
       setUsersData(data)
     } catch (error) {
-      console.error("Erro ao carregar estatísticas de usuários:", error)
+      console.error("❌ [API] Erro ao carregar estatísticas de usuários:", error)
       toast.error("Erro ao carregar estatísticas de usuários")
     }
   }
@@ -104,35 +96,16 @@ export default function ReportsPage() {
   // Carrega dados de mensagens
   const loadMessages = async () => {
     try {
+      console.log("📊 [API] GET /admin/statistics/messages?period=" + period)
       const data = await getMessagesStats(period)
+      console.log("✅ [API] Messages retornado:", data)
       setMessagesData(data)
     } catch (error) {
-      console.error("Erro ao carregar estatísticas de mensagens:", error)
+      console.error("❌ [API] Erro ao carregar estatísticas de mensagens:", error)
       toast.error("Erro ao carregar estatísticas de mensagens")
     }
   }
 
-  // Carrega dados de anexos
-  const loadAttachments = async () => {
-    try {
-      const data = await getAttachmentsStats(period)
-      setAttachmentsData(data)
-    } catch (error) {
-      console.error("Erro ao carregar estatísticas de anexos:", error)
-      toast.error("Erro ao carregar estatísticas de anexos")
-    }
-  }
-
-  // Carrega dados de tendências
-  const loadTrends = async () => {
-    try {
-      const data = await getTrendsStats(days)
-      setTrendsData(data)
-    } catch (error) {
-      console.error("Erro ao carregar tendências:", error)
-      toast.error("Erro ao carregar tendências")
-    }
-  }
 
   // Carrega todos os dados iniciais
   useEffect(() => {
@@ -142,9 +115,7 @@ export default function ReportsPage() {
         loadDashboard(),
         loadTickets(),
         loadUsers(),
-        loadMessages(),
-        loadAttachments(),
-        loadTrends()
+        loadMessages()
       ])
       setLoading(false)
     }
@@ -160,7 +131,7 @@ export default function ReportsPage() {
     
     const params = new URLSearchParams(window.location.search)
     const tab = params.get('tab')
-    if (tab && ['dashboard', 'tickets', 'users', 'messages', 'attachments', 'trends'].includes(tab)) {
+    if (tab && ['dashboard', 'tickets', 'users', 'messages'].includes(tab)) {
       setActiveTab(tab)
     }
     
@@ -183,16 +154,8 @@ export default function ReportsPage() {
       loadTickets()
       loadUsers()
       loadMessages()
-      loadAttachments()
     }
   }, [period])
-
-  // Recarrega tendências quando dias mudam
-  useEffect(() => {
-    if (isAdmin && !loading) {
-      loadTrends()
-    }
-  }, [days])
 
   // Aguarda hidratação antes de verificar permissões
   if (!isHydrated) {
@@ -266,14 +229,6 @@ export default function ReportsPage() {
             <TabsTrigger value="messages">
               <MessageSquare className="mr-2 h-4 w-4" />
               Mensagens
-            </TabsTrigger>
-            <TabsTrigger value="attachments">
-              <Paperclip className="mr-2 h-4 w-4" />
-              Anexos
-            </TabsTrigger>
-            <TabsTrigger value="trends">
-              <TrendingUp className="mr-2 h-4 w-4" />
-              Tendências
             </TabsTrigger>
           </TabsList>
 
@@ -601,7 +556,7 @@ export default function ReportsPage() {
 
                     {/* Gráfico de Desempenho por Agente */}
                     <div id="agents" className="scroll-mt-8 mb-8">
-                      {ticketsData.agent_productivity && 
+                      {ticketsData?.agent_productivity && 
                        Array.isArray(ticketsData.agent_productivity) && 
                        ticketsData.agent_productivity.length > 0 ? (
                         <ChartErrorBoundary>
@@ -615,7 +570,7 @@ export default function ReportsPage() {
                           </CardHeader>
                           <CardContent>
                             <div className="flex items-center justify-center h-64 text-muted-foreground">
-                              <p>Nenhum dado de agente disponível</p>
+                              Nenhum dado disponível
                             </div>
                           </CardContent>
                         </Card>
@@ -624,7 +579,7 @@ export default function ReportsPage() {
 
                     {/* Gráfico de Prioridade dos Tickets */}
                     <div id="priority" className="scroll-mt-8 mb-8">
-                      {ticketsData.by_priority && 
+                      {ticketsData?.by_priority && 
                        typeof ticketsData.by_priority === 'object' &&
                        ticketsData.by_priority !== null &&
                        Object.keys(ticketsData.by_priority).length > 0 ? (
@@ -639,7 +594,7 @@ export default function ReportsPage() {
                           </CardHeader>
                           <CardContent>
                             <div className="flex items-center justify-center h-64 text-muted-foreground">
-                              <p>Nenhum dado de prioridade disponível</p>
+                              Nenhum dado disponível
                             </div>
                           </CardContent>
                         </Card>
@@ -686,9 +641,12 @@ export default function ReportsPage() {
                   <Card>
                     <CardHeader>
                       <CardTitle>Top Performers</CardTitle>
+                      <CardDescription>
+                        Usuários com mais tickets resolvidos ({usersData.top_performers.length} usuários)
+                      </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <div className="space-y-2">
+                      <div className="space-y-2 max-h-[600px] overflow-y-auto">
                         {usersData.top_performers.map((performer, index) => (
                           <div key={performer.user_id} className="flex items-center justify-between p-3 border rounded-lg">
                             <div className="flex items-center gap-3">
@@ -773,61 +731,6 @@ export default function ReportsPage() {
                   </CardContent>
                 </Card>
               </>
-            )}
-          </TabsContent>
-
-          {/* Anexos */}
-          <TabsContent value="attachments" className="space-y-4">
-            {attachmentsData && (
-              <>
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Visão Geral de Anexos</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid gap-4 md:grid-cols-3">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Total</p>
-                        <p className="text-2xl font-bold">{attachmentsData.overview?.total || 0}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-muted-foreground">Tamanho Total</p>
-                        <p className="text-2xl font-bold">{attachmentsData.total_size?.mb?.toFixed(2) || 0} MB</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </>
-            )}
-          </TabsContent>
-
-          {/* Tendências */}
-          <TabsContent value="trends" className="space-y-4">
-            <div className="flex items-center gap-4 mb-4">
-              <Select value={days.toString()} onValueChange={(val) => setDays(parseInt(val))}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Período" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="7">7 dias</SelectItem>
-                  <SelectItem value="30">30 dias</SelectItem>
-                  <SelectItem value="60">60 dias</SelectItem>
-                  <SelectItem value="90">90 dias</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            {trendsData && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Tendências</CardTitle>
-                  <CardDescription>Últimos {days} dias</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground">
-                    Dados de tendências disponíveis. Implemente gráficos conforme necessário.
-                  </p>
-                </CardContent>
-              </Card>
             )}
           </TabsContent>
         </Tabs>
