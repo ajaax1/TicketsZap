@@ -10,7 +10,11 @@ import {
   getDashboardStats, 
   getTicketsStats, 
   getUsersStats, 
-  getMessagesStats
+  getMessagesStats,
+  getMyStats,
+  getMyActivity,
+  getAdminMyStats,
+  comparePerformance
 } from "@/services/statistics"
 import { toast } from "sonner"
 import useAuth from "@/hooks/useAuth"
@@ -24,7 +28,10 @@ import {
   Ticket,
   CheckCircle2,
   Clock,
-  AlertCircle
+  AlertCircle,
+  User,
+  Activity,
+  Target
 } from "lucide-react"
 import { formatarTempoCurto } from "@/utils/timeHelpers"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -32,6 +39,12 @@ import dynamic from "next/dynamic"
 import ChartErrorBoundary from "@/components/charts/ChartErrorBoundary"
 import { AgentPerformanceChart } from "@/components/charts/AgentPerformanceChart"
 import { PriorityChart } from "@/components/charts/PriorityChart"
+import { 
+  MyStatsChart, 
+  MyStatsEnhancedCharts,
+  PerformanceComparisonChart
+} from "@/components/charts"
+import { MyActivity } from "@/components/my-activity"
 
 export default function ReportsPage() {
   useAuth()
@@ -45,6 +58,11 @@ export default function ReportsPage() {
   const [ticketsData, setTicketsData] = useState(null)
   const [usersData, setUsersData] = useState(null)
   const [messagesData, setMessagesData] = useState(null)
+  
+  // Estados para estatísticas pessoais
+  const [myStatsData, setMyStatsData] = useState(null)
+  const [myActivityData, setMyActivityData] = useState(null)
+  const [comparisonData, setComparisonData] = useState(null)
 
   // Verifica se é admin (apenas após hidratação)
   useEffect(() => {
@@ -57,12 +75,10 @@ export default function ReportsPage() {
   // Carrega dados do dashboard
   const loadDashboard = async () => {
     try {
-      console.log("📊 [API] GET /admin/statistics/dashboard?period=" + period)
       const data = await getDashboardStats(period)
-      console.log("✅ [API] Dashboard retornado:", data)
       setDashboardData(data)
     } catch (error) {
-      console.error("❌ [API] Erro ao carregar dashboard:", error)
+      console.error("Erro ao carregar dashboard:", error)
       toast.error("Erro ao carregar estatísticas do dashboard")
     }
   }
@@ -70,12 +86,10 @@ export default function ReportsPage() {
   // Carrega dados de tickets
   const loadTickets = async () => {
     try {
-      console.log("📊 [API] GET /admin/statistics/tickets?period=" + period)
       const data = await getTicketsStats(period)
-      console.log("✅ [API] Tickets retornado:", data)
       setTicketsData(data)
     } catch (error) {
-      console.error("❌ [API] Erro ao carregar estatísticas de tickets:", error)
+      console.error("Erro ao carregar estatísticas de tickets:", error)
       toast.error("Erro ao carregar estatísticas de tickets")
     }
   }
@@ -83,12 +97,10 @@ export default function ReportsPage() {
   // Carrega dados de usuários
   const loadUsers = async () => {
     try {
-      console.log("📊 [API] GET /admin/statistics/users?period=" + period)
       const data = await getUsersStats(period)
-      console.log("✅ [API] Users retornado:", data)
       setUsersData(data)
     } catch (error) {
-      console.error("❌ [API] Erro ao carregar estatísticas de usuários:", error)
+      console.error("Erro ao carregar estatísticas de usuários:", error)
       toast.error("Erro ao carregar estatísticas de usuários")
     }
   }
@@ -96,13 +108,71 @@ export default function ReportsPage() {
   // Carrega dados de mensagens
   const loadMessages = async () => {
     try {
-      console.log("📊 [API] GET /admin/statistics/messages?period=" + period)
       const data = await getMessagesStats(period)
-      console.log("✅ [API] Messages retornado:", data)
       setMessagesData(data)
     } catch (error) {
-      console.error("❌ [API] Erro ao carregar estatísticas de mensagens:", error)
+      console.error("Erro ao carregar estatísticas de mensagens:", error)
       toast.error("Erro ao carregar estatísticas de mensagens")
+    }
+  }
+
+  // Carrega minhas estatísticas pessoais
+  const loadMyStats = async () => {
+    try {
+      const data = await getMyStats(period)
+      console.log("📊 [My Stats] Retorno:", data)
+      setMyStatsData(data)
+    } catch (error) {
+      // Se for 404, a rota não existe ainda - não mostra erro
+      if (error?.response?.status === 404) {
+        setMyStatsData(null)
+        return
+      }
+      console.error("Erro ao carregar minhas estatísticas:", error)
+      // Não mostra toast para 404, apenas para outros erros
+      if (error?.response?.status !== 404) {
+        toast.error("Erro ao carregar suas estatísticas")
+      }
+    }
+  }
+
+  // Carrega minhas atividades
+  const loadMyActivity = async () => {
+    try {
+      const data = await getMyActivity(period, 100)
+      console.log("📊 [My Activity] Retorno:", data)
+      setMyActivityData(data)
+    } catch (error) {
+      // Se for 404, a rota não existe ainda - não mostra erro
+      if (error?.response?.status === 404) {
+        setMyActivityData(null)
+        return
+      }
+      console.error("Erro ao carregar minhas atividades:", error)
+      // Não mostra toast para 404, apenas para outros erros
+      if (error?.response?.status !== 404) {
+        toast.error("Erro ao carregar suas atividades")
+      }
+    }
+  }
+
+  // Carrega comparação de performance (apenas admin)
+  const loadComparison = async () => {
+    try {
+      const data = await comparePerformance(period)
+      console.log("📊 [Comparison] Retorno:", data)
+      setComparisonData(data)
+    } catch (error) {
+      // Se for 404, a rota não existe ainda - não mostra erro
+      if (error?.response?.status === 404) {
+        setComparisonData(null)
+        return
+      }
+      console.error("Erro ao carregar comparação:", error)
+      // Não mostra toast para 404, apenas para outros erros
+      if (error?.response?.status !== 404) {
+        toast.error("Erro ao carregar comparação de performance")
+      }
     }
   }
 
@@ -111,12 +181,21 @@ export default function ReportsPage() {
   useEffect(() => {
     const loadAll = async () => {
       setLoading(true)
-      await Promise.all([
+      const promises = [
         loadDashboard(),
         loadTickets(),
         loadUsers(),
-        loadMessages()
-      ])
+        loadMessages(),
+        loadMyStats(),
+        loadMyActivity()
+      ]
+      
+      // Adiciona comparação apenas se for admin
+      if (isAdmin) {
+        promises.push(loadComparison())
+      }
+      
+      await Promise.all(promises)
       setLoading(false)
     }
     
@@ -131,7 +210,7 @@ export default function ReportsPage() {
     
     const params = new URLSearchParams(window.location.search)
     const tab = params.get('tab')
-    if (tab && ['dashboard', 'tickets', 'users', 'messages'].includes(tab)) {
+    if (tab && ['dashboard', 'tickets', 'users', 'messages', 'my-stats', 'my-activity', 'comparison'].includes(tab)) {
       setActiveTab(tab)
     }
     
@@ -154,6 +233,9 @@ export default function ReportsPage() {
       loadTickets()
       loadUsers()
       loadMessages()
+      loadMyStats()
+      loadMyActivity()
+      loadComparison()
     }
   }, [period])
 
@@ -213,22 +295,36 @@ export default function ReportsPage() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="dashboard">
-              <BarChart3 className="mr-2 h-4 w-4" />
-              Dashboard
+          <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
+            <TabsTrigger value="dashboard" className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
+              <span className="hidden sm:inline">Dashboard</span>
             </TabsTrigger>
-            <TabsTrigger value="tickets">
-              <Ticket className="mr-2 h-4 w-4" />
-              Tickets
+            <TabsTrigger value="tickets" className="flex items-center gap-2">
+              <Ticket className="h-4 w-4" />
+              <span className="hidden sm:inline">Tickets</span>
             </TabsTrigger>
-            <TabsTrigger value="users">
-              <Users className="mr-2 h-4 w-4" />
-              Usuários
+            <TabsTrigger value="users" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              <span className="hidden sm:inline">Usuários</span>
             </TabsTrigger>
-            <TabsTrigger value="messages">
-              <MessageSquare className="mr-2 h-4 w-4" />
-              Mensagens
+            <TabsTrigger value="messages" className="flex items-center gap-2">
+              <MessageSquare className="h-4 w-4" />
+              <span className="hidden sm:inline">Mensagens</span>
+            </TabsTrigger>
+            <TabsTrigger value="my-stats" className="flex items-center gap-2">
+              <User className="h-4 w-4" />
+              <span className="hidden md:inline">Minhas Estatísticas</span>
+              <span className="md:hidden">Estatísticas</span>
+            </TabsTrigger>
+            <TabsTrigger value="my-activity" className="flex items-center gap-2">
+              <Activity className="h-4 w-4" />
+              <span className="hidden md:inline">Minhas Atividades</span>
+              <span className="md:hidden">Atividades</span>
+            </TabsTrigger>
+            <TabsTrigger value="comparison" className="flex items-center gap-2">
+              <Target className="h-4 w-4" />
+              <span className="hidden lg:inline">Comparação</span>
             </TabsTrigger>
           </TabsList>
 
@@ -731,6 +827,102 @@ export default function ReportsPage() {
                   </CardContent>
                 </Card>
               </>
+            )}
+          </TabsContent>
+
+          {/* Minhas Estatísticas */}
+          <TabsContent value="my-stats" className="space-y-6">
+            {myStatsData ? (
+              <>
+                <MyStatsChart data={myStatsData} />
+                <MyStatsEnhancedCharts data={myStatsData} />
+              </>
+            ) : loading ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Minhas Estatísticas</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <LoadingSpinner text="Carregando suas estatísticas..." />
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Minhas Estatísticas</CardTitle>
+                  <CardDescription>
+                    Esta funcionalidade ainda não está disponível no backend
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-8 text-muted-foreground">
+                    A rota <code className="text-sm bg-muted px-2 py-1 rounded">/api/statistics/my-stats</code> não está disponível ainda.
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          {/* Minhas Atividades */}
+          <TabsContent value="my-activity" className="space-y-6">
+            {myActivityData ? (
+              <MyActivity period={period} data={myActivityData} />
+            ) : loading ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Minhas Atividades</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <LoadingSpinner text="Carregando suas atividades..." />
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Minhas Atividades</CardTitle>
+                  <CardDescription>
+                    Esta funcionalidade ainda não está disponível no backend
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-8 text-muted-foreground">
+                    A rota <code className="text-sm bg-muted px-2 py-1 rounded">/api/statistics/my-activity</code> não está disponível ainda.
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          {/* Comparação de Performance */}
+          <TabsContent value="comparison" className="space-y-6">
+            {comparisonData ? (
+              <PerformanceComparisonChart data={comparisonData} />
+            ) : loading ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Comparação de Performance</CardTitle>
+                  <CardDescription>
+                    Compare sua performance com a média dos outros usuários
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <LoadingSpinner text="Carregando comparação..." />
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Comparação de Performance</CardTitle>
+                  <CardDescription>
+                    Esta funcionalidade ainda não está disponível no backend
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-8 text-muted-foreground">
+                    A rota <code className="text-sm bg-muted px-2 py-1 rounded">/api/admin/statistics/compare-performance</code> não está disponível ainda.
+                  </div>
+                </CardContent>
+              </Card>
             )}
           </TabsContent>
         </Tabs>

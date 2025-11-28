@@ -6,32 +6,20 @@ import { ChevronLeft, ChevronRight } from "lucide-react"
 
 export function Pagination({ paginationData, onPageChange, loading = false }) {
   const handlePageClick = useCallback((pageNumber) => {
-    console.log('Pagination handlePageClick called with:', pageNumber, 'current:', paginationData?.current_page)
     if (pageNumber !== paginationData?.current_page && onPageChange && !loading) {
-      console.log('Calling onPageChange with:', pageNumber)
       onPageChange(pageNumber)
-    } else {
-      console.log('Skipping page change - same page or loading or no handler')
     }
   }, [paginationData?.current_page, onPageChange, loading])
 
   const handlePrevious = useCallback(() => {
-    console.log('Pagination handlePrevious called, current:', paginationData?.current_page)
     if (paginationData?.current_page > 1 && onPageChange && !loading) {
-      console.log('Calling onPageChange with:', paginationData.current_page - 1)
       onPageChange(paginationData.current_page - 1)
-    } else {
-      console.log('Skipping previous - first page or loading or no handler')
     }
   }, [paginationData?.current_page, onPageChange, loading])
 
   const handleNext = useCallback(() => {
-    console.log('Pagination handleNext called, current:', paginationData?.current_page, 'last:', paginationData?.last_page)
     if (paginationData?.current_page < paginationData?.last_page && onPageChange && !loading) {
-      console.log('Calling onPageChange with:', paginationData.current_page + 1)
       onPageChange(paginationData.current_page + 1)
-    } else {
-      console.log('Skipping next - last page or loading or no handler')
     }
   }, [paginationData?.current_page, paginationData?.last_page, onPageChange, loading])
 
@@ -70,11 +58,8 @@ export function Pagination({ paginationData, onPageChange, loading = false }) {
                 variant={link.active ? "default" : "outline"}
                 size="sm"
                 onClick={() => {
-                  console.log('Page button clicked:', link.label, 'parsed as:', pageNumber)
                   if (isValidPage) {
                     handlePageClick(pageNumber)
-                  } else {
-                    console.error('Invalid page number:', link.label)
                   }
                 }}
                 disabled={link.active || loading || !isValidPage}

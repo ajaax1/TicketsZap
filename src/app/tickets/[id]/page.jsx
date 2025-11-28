@@ -30,6 +30,7 @@ import { DeleteConfirmationDialog } from "@/components/delete-confirmation-dialo
 import { LoadingSpinner } from "@/components/loading-spinner"
 import { TicketAttachments } from "@/components/ticket-attachments"
 import { TicketMessages } from "@/components/ticket-messages"
+import { TicketActivityLogs } from "@/components/ticket-activity-logs"
 import useAuth from "@/hooks/useAuth"
 import { usePermissions } from "@/hooks/usePermissions"
 
@@ -694,6 +695,10 @@ export default function EditarChamado() {
 
         <div className="mt-6" suppressHydrationWarning>
           <TicketAttachments ticketId={ticketId} />
+        </div>
+
+        <div className="mt-6" suppressHydrationWarning>
+          <TicketActivityLogs ticketId={ticketId} limit={30} />
         </div>
 
         <div className="mt-6" ref={messagesSectionRef} suppressHydrationWarning>

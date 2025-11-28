@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { Settings, LogOut, User } from "lucide-react"
+import { Settings, LogOut, User, Shield } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   DropdownMenu,
@@ -16,10 +16,12 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { logout, getCurrentUser } from "@/services/auth"
 import { NotificationBell } from "@/components/notifications/NotificationBell"
+import { usePermissions } from "@/hooks/usePermissions"
 
 export function TicketsHeader() {
   const [user, setUser] = useState(null)
   const pathname = usePathname()
+  const { isAdmin, isHydrated } = usePermissions()
 
   useEffect(() => {
     // Busca dados do usuário do localStorage
@@ -86,6 +88,18 @@ export function TicketsHeader() {
               >
                 Relatórios
               </Link>
+              {isHydrated && isAdmin && (
+                <Link 
+                  href="/audit" 
+                  className={`text-sm font-medium transition-colors ${
+                    isActive("/audit") 
+                      ? "text-foreground" 
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Auditoria
+                </Link>
+              )}
             </nav>
           </div>
           <div className="flex items-center gap-3" suppressHydrationWarning>

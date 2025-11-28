@@ -107,15 +107,16 @@ export function AgentPerformanceChart({ data = [] }) {
             <ResponsiveContainer width="100%" height="100%">
               <RechartsBarChart 
                 data={data} 
-                margin={{ top: 20, right: 30, left: 20, bottom: 80 }}
+                margin={{ top: 20, right: 30, left: 20, bottom: data.length > 5 ? 120 : 80 }}
               >
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
                 <XAxis 
                   dataKey="name" 
-                  angle={-45}
-                  textAnchor="end"
-                  height={100}
-                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }}
+                  angle={data.length > 5 ? -45 : 0}
+                  textAnchor={data.length > 5 ? "end" : "middle"}
+                  height={data.length > 5 ? 120 : 60}
+                  interval={0}
+                  tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: data.length > 5 ? 10 : 12 }}
                 />
                 <YAxis tick={{ fill: 'hsl(var(--muted-foreground))', fontSize: 12 }} />
                 <Tooltip 

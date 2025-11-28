@@ -19,9 +19,11 @@ function UsersPageContent() {
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [isNavigating, setIsNavigating] = useState(false)
   const [filters, setFilters] = useState({})
   const isUpdatingURL = useRef(false)
+  const hasInitialized = useRef(false)
+  const prevFiltersRef = useRef({})
+  const prevPageRef = useRef(1)
 
   // Função para ler filtros da URL
   const getFiltersFromURL = () => {
@@ -49,14 +51,14 @@ function UsersPageContent() {
   const fetchPage = useCallback(async (page, appliedFilters = {}) => {
     try {
       setLoading(true)
-      console.log('Fetching users page:', page, 'with filters:', appliedFilters)
       
       // Adiciona timestamp para cache busting
       const cacheBuster = Date.now()
       const data = await getUsers(page, { ...appliedFilters, _t: cacheBuster })
       
-      console.log('Users page data received:', data)
-      setUsers(Array.isArray(data.data) ? data.data : [])
+      const usersArray = Array.isArray(data.data) ? data.data : []
+      
+      setUsers(usersArray)
       setPaginationData(data)
       setError(null)
     } catch (err) {
@@ -69,10 +71,9 @@ function UsersPageContent() {
     }
   }, [])
 
-  // Carrega filtros da URL na inicialização
+  // Carrega filtros da URL quando a URL muda (não quando currentPage muda)
   useEffect(() => {
     if (isUpdatingURL.current) {
-      console.log('Skipping URL update - we are updating programmatically')
       isUpdatingURL.current = false
       return
     }
@@ -80,51 +81,67 @@ function UsersPageContent() {
     const urlFilters = getFiltersFromURL()
     const urlPage = searchParams.get('page') ? parseInt(searchParams.get('page')) : 1
     
-    console.log('URL changed - loading filters:', urlFilters, 'page:', urlPage, 'currentPage:', currentPage)
-    
-    // Atualiza página se mudou
-    if (urlPage !== currentPage) {
-      console.log('Page changed from URL:', urlPage, 'updating state')
+    // Atualiza página se mudou (mas não se estamos atualizando programaticamente)
+    if (urlPage !== currentPage && !isUpdatingURL.current) {
+      // Atualiza o ref ANTES de atualizar o estado para evitar que o useEffect detecte como "nada mudou"
+      prevPageRef.current = currentPage
       setCurrentPage(urlPage)
     }
     
-    // Sempre atualiza filtros da URL (pode ter mudado mesmo se página não mudou)
-    setFilters(urlFilters)
-  }, [searchParams, currentPage])
+    // Atualiza filtros se mudaram
+    const filtersChanged = JSON.stringify(urlFilters) !== JSON.stringify(filters)
+    if (filtersChanged && !isUpdatingURL.current) {
+      prevFiltersRef.current = filters
+      setFilters(urlFilters)
+    }
+  }, [searchParams, currentPage, filters])
 
   // Busca dados quando filtros ou página mudam
   useEffect(() => {
-    if (Object.keys(filters).length > 0 || currentPage > 0) {
+    // Compara se realmente mudou ANTES de atualizar os refs
+    const filtersChanged = JSON.stringify(prevFiltersRef.current) !== JSON.stringify(filters)
+    const pageChanged = prevPageRef.current !== currentPage
+    
+    // Na primeira renderização, sempre busca dados
+    const isFirstLoad = !hasInitialized.current
+    
+    // Só faz fetch se realmente mudou ou for primeira carga
+    if ((isFirstLoad || filtersChanged || pageChanged) && currentPage > 0) {
+      // Atualiza refs APENAS DEPOIS de confirmar que vai fazer o fetch
+      prevFiltersRef.current = filters
+      prevPageRef.current = currentPage
+      hasInitialized.current = true
+      
       fetchPage(currentPage, filters)
     }
   }, [currentPage, filters, fetchPage])
 
   const handlePageChange = useCallback((page) => {
-    console.log('UsersPage handlePageChange called with page:', page, 'currentPage:', currentPage, 'isNavigating:', isNavigating)
+    // Usa paginationData.current_page como fonte da verdade para comparação
+    const actualCurrentPage = paginationData?.current_page || currentPage
     
     // Validação básica
     if (!page || page < 1) {
-      console.error('Invalid page number:', page)
       return
     }
     
-    // Evita mudança para a mesma página
-    if (page === currentPage) {
-      console.log('Same page, skipping update')
+    // Evita mudança para a mesma página (usa paginationData como fonte da verdade)
+    // Mas permite se o estado estiver dessincronizado
+    if (page === actualCurrentPage && page === currentPage) {
       return
     }
     
-    // Evita múltiplas navegações simultâneas
-    if (isNavigating) {
-      console.log('Already navigating, skipping update')
-      return
-    }
+    // IMPORTANTE: Atualiza o ref ANTES de atualizar o estado
+    // Isso garante que quando o useEffect rodar, ele detecte a mudança
+    prevPageRef.current = currentPage
     
-    // Marca que estamos navegando
-    setIsNavigating(true)
+    // Marca que estamos atualizando URL (para evitar loop no useEffect que lê da URL)
     isUpdatingURL.current = true
     
-    // Atualiza URL primeiro para garantir sincronização
+    // Atualiza o estado PRIMEIRO para disparar o fetch imediatamente
+    setCurrentPage(page)
+    
+    // Atualiza URL de forma assíncrona (não bloqueia o fetch)
     const params = new URLSearchParams()
     
     // Adiciona nova página
@@ -135,28 +152,15 @@ function UsersPageContent() {
     if (filters.search && filters.search.trim()) params.set('search', filters.search.trim())
 
     const newURL = params.toString() ? `?${params.toString()}` : '/users'
-    console.log('UsersPage updating URL to:', newURL)
     
-    try {
-      // Atualiza URL primeiro
-      router.replace(newURL, { scroll: false })
-      console.log('UsersPage URL updated successfully')
-      
-      // Depois atualiza o estado
-      setCurrentPage(page)
-      console.log('UsersPage state updated to:', page)
-      
-      // Reset navigation flag após um delay
-      setTimeout(() => {
-        setIsNavigating(false)
-        console.log('Navigation completed')
-      }, 100)
-    } catch (error) {
-      console.error('UsersPage error updating URL:', error)
+    // Atualiza URL de forma não-bloqueante
+    router.replace(newURL, { scroll: false })
+    
+    // Reset flag após um pequeno delay para garantir que o useEffect que lê da URL não interfira
+    setTimeout(() => {
       isUpdatingURL.current = false
-      setIsNavigating(false)
-    }
-  }, [filters, router, currentPage, isNavigating])
+    }, 50)
+  }, [filters, router, currentPage, paginationData?.current_page])
 
   const handleApplyFilters = (newFilters) => {
     setFilters(newFilters)
@@ -169,13 +173,15 @@ function UsersPageContent() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background" suppressHydrationWarning>
       <TicketsHeader />
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mb-6">
+      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8" suppressHydrationWarning>
+        <div className="mb-6" suppressHydrationWarning>
           <UsersStats />
         </div>
-        <UsersFilters onApply={handleApplyFilters} initialFilters={filters} />
+        <div suppressHydrationWarning>
+          <UsersFilters onApply={handleApplyFilters} initialFilters={filters} />
+        </div>
 
         {loading ? (
           <LoadingSpinner text="Carregando usuários..." />

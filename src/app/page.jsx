@@ -23,9 +23,11 @@ function TicketsPageContent() {
   const [tickets, setTickets] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [isNavigating, setIsNavigating] = useState(false)
   const [filters, setFilters] = useState({})
   const isUpdatingURL = useRef(false)
+  const hasInitialized = useRef(false)
+  const prevFiltersRef = useRef({})
+  const prevPageRef = useRef(1)
   const [ticketsWithNewMessages, setTicketsWithNewMessages] = useState(new Map()) // Map<ticketId, quantidade>
 
   // Função para ler filtros da URL
@@ -62,13 +64,11 @@ function TicketsPageContent() {
   const fetchPage = useCallback(async (page, appliedFilters = {}) => {
     try {
       setLoading(true)
-      console.log('Fetching page:', page, 'with filters:', appliedFilters)
       
       // Adiciona timestamp para cache busting
       const cacheBuster = Date.now()
       const data = await getTickets(page, { ...appliedFilters, _t: cacheBuster })
       
-      console.log('Page data received:', data)
       setTickets(Array.isArray(data.data) ? data.data : [])
       setPaginationData(data)
       setError(null)
@@ -82,57 +82,77 @@ function TicketsPageContent() {
     }
   }, [])
 
-  // Carrega filtros da URL na inicialização
+  // Carrega filtros da URL quando a URL muda
   useEffect(() => {
     if (isUpdatingURL.current) {
-      console.log('Skipping URL update - we are updating programmatically')
+      isUpdatingURL.current = false
       return
     }
     
     const urlFilters = getFiltersFromURL()
     const urlPage = searchParams.get('page') ? parseInt(searchParams.get('page')) : 1
     
-    console.log('URL changed - loading filters:', urlFilters, 'page:', urlPage, 'currentPage:', currentPage)
-    
-    // Atualiza página se mudou
-    if (urlPage !== currentPage) {
-      console.log('Page changed from URL:', urlPage, 'updating state')
+    // Atualiza página se mudou (mas não se estamos atualizando programaticamente)
+    if (urlPage !== currentPage && !isUpdatingURL.current) {
+      // Atualiza o ref ANTES de atualizar o estado para evitar que o useEffect detecte como "nada mudou"
+      prevPageRef.current = currentPage
       setCurrentPage(urlPage)
     }
     
-    // Sempre atualiza filtros da URL (pode ter mudado mesmo se página não mudou)
-    setFilters(urlFilters)
-  }, [searchParams, currentPage])
+    // Atualiza filtros se mudaram
+    const filtersChanged = JSON.stringify(urlFilters) !== JSON.stringify(filters)
+    if (filtersChanged && !isUpdatingURL.current) {
+      prevFiltersRef.current = filters
+      setFilters(urlFilters)
+    }
+  }, [searchParams, currentPage, filters])
 
   // Busca dados quando filtros ou página mudam
   useEffect(() => {
-    if (Object.keys(filters).length > 0 || currentPage > 0) {
+    // Compara se realmente mudou ANTES de atualizar os refs
+    const filtersChanged = JSON.stringify(prevFiltersRef.current) !== JSON.stringify(filters)
+    const pageChanged = prevPageRef.current !== currentPage
+    
+    // Na primeira renderização, sempre busca dados
+    const isFirstLoad = !hasInitialized.current
+    
+    // Só faz fetch se realmente mudou ou for primeira carga
+    if ((isFirstLoad || filtersChanged || pageChanged) && currentPage > 0) {
+      // Atualiza refs APENAS DEPOIS de confirmar que vai fazer o fetch
+      prevFiltersRef.current = filters
+      prevPageRef.current = currentPage
+      hasInitialized.current = true
+      
       fetchPage(currentPage, filters)
     }
   }, [currentPage, filters, fetchPage])
 
   const handlePageChange = useCallback((page) => {
-    console.log('TicketsPage handlePageChange called with page:', page, 'currentPage:', currentPage)
+    // Usa paginationData.current_page como fonte da verdade para comparação
+    const actualCurrentPage = paginationData?.current_page || currentPage
     
     // Validação básica
     if (!page || page < 1) {
-      console.error('Invalid page number:', page)
       return
     }
     
-    // Evita mudança para a mesma página
-    if (page === currentPage) {
-      console.log('Same page, skipping update')
+    // Evita mudança para a mesma página (usa paginationData como fonte da verdade)
+    // Mas permite se o estado estiver dessincronizado
+    if (page === actualCurrentPage && page === currentPage) {
       return
     }
     
-    // Marca que estamos atualizando programaticamente
+    // IMPORTANTE: Atualiza o ref ANTES de atualizar o estado
+    // Isso garante que quando o useEffect rodar, ele detecte a mudança
+    prevPageRef.current = currentPage
+    
+    // Marca que estamos atualizando URL (para evitar loop no useEffect que lê da URL)
     isUpdatingURL.current = true
     
-    // Atualiza o estado imediatamente
+    // Atualiza o estado PRIMEIRO para disparar o fetch imediatamente
     setCurrentPage(page)
     
-    // Atualiza URL com os novos parâmetros
+    // Atualiza URL de forma assíncrona (não bloqueia o fetch)
     const params = new URLSearchParams()
     
     // Adiciona nova página
@@ -147,16 +167,15 @@ function TicketsPageContent() {
     if (filters.to) params.set('to', filters.to)
 
     const newURL = params.toString() ? `?${params.toString()}` : '/'
-    console.log('TicketsPage updating URL to:', newURL)
     
-    // Atualiza URL
+    // Atualiza URL de forma não-bloqueante
     router.replace(newURL, { scroll: false })
     
-    // Reset flag após um delay
+    // Reset flag após um pequeno delay para garantir que o useEffect que lê da URL não interfira
     setTimeout(() => {
       isUpdatingURL.current = false
-    }, 200)
-  }, [filters, router, currentPage])
+    }, 50)
+  }, [filters, router, currentPage, paginationData?.current_page])
 
   const handleApplyFilters = (newFilters) => {
     setFilters(newFilters)

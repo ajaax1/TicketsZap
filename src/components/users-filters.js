@@ -28,9 +28,9 @@ export function UsersFilters({ onApply, initialFilters = {} }) {
   }
 
   return (
-    <div className="space-y-6 mb-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
+    <div className="space-y-6 mb-6" suppressHydrationWarning>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between" suppressHydrationWarning>
+        <div suppressHydrationWarning>
           <h2 className="text-3xl font-bold tracking-tight text-foreground">
             Usuários do Sistema
           </h2>
@@ -48,13 +48,13 @@ export function UsersFilters({ onApply, initialFilters = {} }) {
         )}
       </div>
 
-      <div className="space-y-4">
-        <div className="flex flex-wrap items-end gap-3 justify-between">
-          <div className="flex flex-wrap items-end gap-3">
+      <div className="space-y-4" suppressHydrationWarning>
+        <div className="flex flex-wrap items-end gap-3 justify-between" suppressHydrationWarning>
+          <div className="flex flex-wrap items-end gap-3" suppressHydrationWarning>
             {/* 🔍 Campo de busca */}
-            <div className="flex-shrink-0">
+            <div className="flex-shrink-0" suppressHydrationWarning>
               <label className="block text-sm font-medium text-foreground mb-1">Buscar</label>
-              <div className="relative w-64">
+              <div className="relative w-64" suppressHydrationWarning>
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   placeholder="Buscar usuários..."
@@ -66,7 +66,7 @@ export function UsersFilters({ onApply, initialFilters = {} }) {
             </div>
 
             {/* 👤 Função */}
-            <div className="flex-shrink-0">
+            <div className="flex-shrink-0" suppressHydrationWarning>
               <label htmlFor="role-filter" className="block text-sm font-medium text-foreground mb-1">Função</label>
               <select
                 id="role-filter"
@@ -84,7 +84,7 @@ export function UsersFilters({ onApply, initialFilters = {} }) {
           </div>
 
           {/* 🔘 Botões de ação */}
-          <div className="flex gap-2">
+          <div className="flex gap-2" suppressHydrationWarning>
             <Button
               variant="outline"
               className="h-10 cursor-pointer"
